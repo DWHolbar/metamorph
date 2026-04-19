@@ -6,6 +6,7 @@ import Header from './Header';
 import StatsBar from './StatsBar';
 import RepoTable from './RepoTable';
 import BlogCoverage from './BlogCoverage';
+import SocialFeed from './SocialFeed';
 import RateLimitBanner from './RateLimitBanner';
 import LoadingSkeleton from './LoadingSkeleton';
 
@@ -139,7 +140,16 @@ export default function Dashboard() {
         {data && (
           <>
             <StatsBar stats={data.stats} />
-            <RepoTable repos={data.repos} />
+            <div className="grid grid-cols-1 xl:grid-cols-[1fr_360px] gap-6 items-start">
+              <RepoTable repos={data.repos} />
+              <div className="rounded-xl border border-gray-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-4">
+                <SocialFeed
+                  newsArticles={data.newsArticles ?? []}
+                  hnPosts={data.hnPosts ?? []}
+                  tweets={data.tweets ?? []}
+                />
+              </div>
+            </div>
             <BlogCoverage sources={data.blogSources} repos={data.repos} />
           </>
         )}

@@ -5,6 +5,31 @@ export interface BlogPost {
   url: string;
 }
 
+export interface NewsArticle {
+  title: string;
+  url: string;
+  source: string;
+  publishedAt: string;
+  repoMatches: string[];
+}
+
+export interface HNPost {
+  title: string;
+  url: string;
+  hnUrl: string;
+  points: number;
+  numComments: number;
+  publishedAt: string;
+  repoMatches: string[];
+}
+
+export interface Tweet {
+  text: string;
+  url: string;
+  publishedAt: string;
+  repoMatches: string[];
+}
+
 export interface Repo {
   name: string;
   org: OrgName;
@@ -25,6 +50,9 @@ export interface DeltaResult {
   repos: Repo[];
   hiddenGems: Repo[];
   blogSources: BlogPost[];
+  newsArticles: NewsArticle[];
+  hnPosts: HNPost[];
+  tweets: Tweet[];
   stats: {
     totalRepos: number;
     hiddenGemsCount: number;
