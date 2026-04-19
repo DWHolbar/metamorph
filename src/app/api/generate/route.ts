@@ -11,7 +11,7 @@ const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 export async function POST(req: Request) {
   if (!process.env.ANTHROPIC_API_KEY) {
     return NextResponse.json(
-      { error: 'ANTHROPIC_API_KEY is not configured. Add it to your environment variables.' },
+      { error: 'ANTHROPIC_API_KEY is not configured.', details: 'Add ANTHROPIC_API_KEY to your Vercel environment variables, then redeploy.' },
       { status: 500 },
     );
   }
@@ -40,8 +40,32 @@ export async function POST(req: Request) {
 
     return NextResponse.json({ content });
   } catch (err) {
+    if (err instanceof Anthropic.AuthenticationError) {
+      return NextResponse.json(
+        { error: 'Invalid Anthropic API key.', details: 'Check that ANTHROPIC_API_KEY is correct in your Vercel environment variables and redeploy.' },
+        { status: 401 },
+      );
+    }
+    if (err instanceof Anthropic.PermissionDeniedError) {
+      return NextResponse.json(
+        { error: 'Anthropic API permission denied.', details: String(err) },
+        { status: 403 },
+      );
+    }
+    if (err instanceof Anthropic.RateLimitError) {
+      return NextResponse.json(
+        { error: 'Anthropic rate limit hit.', details: 'Too many requests — wait a moment and try again.' },
+        { status: 429 },
+      );
+    }
+    if (err instanceof Anthropic.APIError) {
+      return NextResponse.json(
+        { error: `Anthropic API error (${err.status}).`, details: err.message },
+        { status: 500 },
+      );
+    }
     return NextResponse.json(
-      { error: 'Generation failed', details: String(err) },
+      { error: 'Generation failed.', details: String(err) },
       { status: 500 },
     );
   }

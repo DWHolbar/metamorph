@@ -76,7 +76,7 @@ export default function ContentStudio() {
         body: JSON.stringify({ repo: selectedRepo, contentType }),
       });
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error ?? 'Unknown error');
+      if (!res.ok) throw new Error(data.details || data.error || 'Unknown error');
       setGenerated(data.content);
     } catch (err) {
       setGenError(err instanceof Error ? err.message : String(err));
@@ -106,11 +106,6 @@ export default function ContentStudio() {
             Select any repo — especially Hidden Gems — and instantly generate tweets,
             blog posts, newsletters, PR pitches, and more using AI.
           </p>
-          {!process.env.NEXT_PUBLIC_HAS_ANTHROPIC_KEY && (
-            <p className="mt-2 text-xs text-amber-600 dark:text-amber-400">
-              Requires <code className="font-mono bg-amber-100 dark:bg-amber-950/50 px-1 rounded">ANTHROPIC_API_KEY</code> in your environment variables.
-            </p>
-          )}
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-[340px_1fr] gap-6">
