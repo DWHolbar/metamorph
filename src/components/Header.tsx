@@ -21,15 +21,12 @@ export default function Header({ lastUpdated }: HeaderProps) {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
         <div className="flex items-center gap-6">
           <div className="flex items-center gap-3">
-            <span className="text-2xl font-bold font-mono text-emerald-500 dark:text-emerald-400 leading-none">
-              &Delta;
-            </span>
             <div>
-              <h1 className="text-base font-bold text-gray-900 dark:text-zinc-100 leading-none">
-                Delta Reporter
+              <h1 className="text-base font-bold text-gray-900 dark:text-zinc-100 leading-none tracking-tight">
+                Metamorph
               </h1>
               <p className="text-xs text-gray-500 dark:text-zinc-500 mt-0.5">
-                Marketing-to-Engineering Coverage Gap
+                Trail of Bits repo intelligence
               </p>
             </div>
           </div>

@@ -15,12 +15,12 @@ const jetbrainsMono = JetBrains_Mono({
 });
 
 export const metadata: Metadata = {
-  title: 'Delta Reporter | Marketing-to-Engineering Coverage Gap',
+  title: 'Metamorph | Trail of Bits Repo Intelligence',
   description:
     'Discover Trail of Bits tools with high GitHub activity that are missing blog coverage — your next marketing opportunity.',
   openGraph: {
-    title: 'Delta Reporter',
-    description: 'Marketing-to-Engineering Coverage Gap Analysis for Trail of Bits',
+    title: 'Metamorph',
+    description: 'Trail of Bits Repo Intelligence — surface hidden gems and generate marketing content.',
     type: 'website',
   },
 };

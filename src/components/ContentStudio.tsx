@@ -7,7 +7,7 @@ import Header from './Header';
 
 const CONTENT_TYPES = Object.entries(CONTENT_TYPE_LABELS) as [ContentType, string][];
 
-const CACHE_KEY = `delta-${new Date().toISOString().slice(0, 10)}`;
+const CACHE_KEY = `delta-${new Date().toISOString().slice(0, 13)}`;
 
 const TYPE_ICONS: Record<ContentType, string> = {
   'tweet-short': '𝕏',

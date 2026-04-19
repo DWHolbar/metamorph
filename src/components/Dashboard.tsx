@@ -4,13 +4,13 @@ import { useEffect, useState } from 'react';
 import type { DeltaResult } from '@/lib/types';
 import Header from './Header';
 import StatsBar from './StatsBar';
-import HiddenGems from './HiddenGems';
 import RepoTable from './RepoTable';
 import BlogCoverage from './BlogCoverage';
 import RateLimitBanner from './RateLimitBanner';
 import LoadingSkeleton from './LoadingSkeleton';
 
-const CACHE_KEY = `delta-${new Date().toISOString().slice(0, 10)}`;
+// Hourly cache key — auto-refreshes every hour without any user action
+const CACHE_KEY = `delta-${new Date().toISOString().slice(0, 13)}`;
 
 export default function Dashboard() {
   const [data, setData] = useState<DeltaResult | null>(null);
@@ -106,14 +106,14 @@ export default function Dashboard() {
         {/* Hero */}
         <div>
           <h2 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-zinc-100 mb-2">
-            Coverage Gap Analysis
+            Repo Intelligence
           </h2>
           <p className="text-gray-500 dark:text-zinc-400 max-w-2xl">
-            Comparing GitHub activity across{' '}
+            Live view of all open-source repos across{' '}
             <span className="text-blue-600 dark:text-blue-400 font-mono">trailofbits</span>,{' '}
             <span className="text-purple-600 dark:text-purple-400 font-mono">crytic</span>, and{' '}
-            <span className="text-orange-600 dark:text-orange-400 font-mono">lifting-bits</span>{' '}
-            against blog.trailofbits.com coverage to surface un-marketed tools.
+            <span className="text-orange-600 dark:text-orange-400 font-mono">lifting-bits</span>
+            {' '}— refreshes every hour automatically.
           </p>
           {isStale && (
             <p className="mt-2 text-xs text-gray-400 dark:text-zinc-600 flex items-center gap-1.5">
@@ -139,7 +139,6 @@ export default function Dashboard() {
         {data && (
           <>
             <StatsBar stats={data.stats} />
-            <HiddenGems gems={data.hiddenGems} />
             <RepoTable repos={data.repos} />
             <BlogCoverage sources={data.blogSources} repos={data.repos} />
           </>
@@ -148,7 +147,7 @@ export default function Dashboard() {
 
       <footer className="border-t border-gray-200 dark:border-zinc-800 mt-16">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 flex items-center justify-between text-xs text-gray-400 dark:text-zinc-600">
-          <span>Delta Reporter — Trail of Bits coverage analysis</span>
+          <span>Metamorph — Trail of Bits repo intelligence</span>
           <a
             href="https://github.com/trailofbits"
             target="_blank"
