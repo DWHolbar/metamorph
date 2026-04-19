@@ -73,6 +73,18 @@ const NITTER_INSTANCES = [
   'https://nitter.net/trailofbits/rss',
   'https://nitter.privacydev.net/trailofbits/rss',
   'https://nitter.poast.org/trailofbits/rss',
+  'https://nitter.bird.froth.zone/trailofbits/rss',
+  'https://nitter.1d4.us/trailofbits/rss',
+  'https://nitter.kavin.rocks/trailofbits/rss',
+  'https://nitter.unixfox.eu/trailofbits/rss',
+  'https://nitter.domain.glass/trailofbits/rss',
+  'https://nitter.moomoo.me/trailofbits/rss',
+  'https://nitter.eu.projectsegfau.lt/trailofbits/rss',
+  'https://nitter.namazso.eu/trailofbits/rss',
+  'https://nitter.cz/trailofbits/rss',
+  'https://nitter.it/trailofbits/rss',
+  'https://nitter.privacy.com.de/trailofbits/rss',
+  'https://nitter.mint.lgbt/trailofbits/rss',
 ];
 
 export async function fetchTweets(repoNames: string[]): Promise<Tweet[]> {
