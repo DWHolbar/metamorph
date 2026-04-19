@@ -250,11 +250,32 @@ export default function RepoTable({ repos }: { repos: Repo[] }) {
                     </td>
                     <td className="px-4 py-3 hidden md:table-cell text-center">
                       {repo.blogMentions.length > 0 ? (
-                        <span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-emerald-100 dark:bg-emerald-950/50">
-                          <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" className="text-emerald-600 dark:text-emerald-400">
-                            <polyline points="20 6 9 17 4 12" />
-                          </svg>
-                        </span>
+                        <div className="relative group/blog inline-flex">
+                          <span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-emerald-100 dark:bg-emerald-950/50 cursor-pointer">
+                            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" className="text-emerald-600 dark:text-emerald-400">
+                              <polyline points="20 6 9 17 4 12" />
+                            </svg>
+                          </span>
+                          {/* Blog post link tooltip */}
+                          <div className="absolute bottom-full right-0 mb-2 hidden group-hover/blog:flex flex-col gap-1 z-20 min-w-max max-w-xs pointer-events-auto">
+                            <div className="bg-gray-900 dark:bg-zinc-800 rounded-lg shadow-lg overflow-hidden border border-zinc-700 dark:border-zinc-600">
+                              {repo.blogMentions.map((post, pi) => (
+                                <a
+                                  key={pi}
+                                  href={post.url}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="flex items-center gap-2 px-3 py-2 text-xs text-zinc-200 hover:bg-zinc-700 transition-colors border-b border-zinc-700 last:border-0"
+                                >
+                                  <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="shrink-0 text-emerald-400">
+                                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/>
+                                  </svg>
+                                  <span className="line-clamp-2 leading-snug">{post.title}</span>
+                                </a>
+                              ))}
+                            </div>
+                          </div>
+                        </div>
                       ) : (
                         <span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-gray-100 dark:bg-zinc-800">
                           <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" className="text-gray-300 dark:text-zinc-600">
