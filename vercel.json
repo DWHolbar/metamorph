@@ -1,0 +1,7 @@
+{
+  "functions": {
+    "src/app/api/delta/route.ts": {
+      "maxDuration": 60
+    }
+  }
+}
