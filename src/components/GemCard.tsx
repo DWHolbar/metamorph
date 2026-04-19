@@ -31,11 +31,14 @@ export default function GemCard({ repo }: { repo: Repo }) {
       {/* Top row */}
       <div className="flex items-start justify-between gap-2 mb-3">
         <div className="flex items-center gap-2 flex-wrap">
-          <span
-            className={`text-xs font-medium px-2 py-0.5 rounded-full ${ORG_COLORS[repo.org]}`}
-          >
+          <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${ORG_COLORS[repo.org]}`}>
             {repo.org}
           </span>
+          {repo.isNew && (
+            <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-400 border border-emerald-300/50 dark:border-emerald-700/40">
+              New
+            </span>
+          )}
           {isRecent && (
             <span className="flex items-center gap-1 text-xs text-emerald-600 dark:text-emerald-400 font-medium">
               <span className="relative flex h-2 w-2">
@@ -46,11 +49,21 @@ export default function GemCard({ repo }: { repo: Repo }) {
             </span>
           )}
         </div>
-        <div className="flex items-center gap-1 text-amber-500 dark:text-amber-400 shrink-0">
+
+        {/* Stars with tooltip */}
+        <div className="group/stars relative flex items-center gap-1 text-amber-500 dark:text-amber-400 shrink-0">
           <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor">
             <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
           </svg>
           <span className="text-sm font-mono font-semibold">{repo.stars.toLocaleString()}</span>
+          <div className="absolute bottom-full right-0 mb-2 w-56 hidden group-hover/stars:block z-10 pointer-events-none">
+            <div className="bg-gray-900 dark:bg-zinc-700 text-white text-xs rounded-lg px-3 py-2 shadow-lg">
+              <p className="font-semibold mb-0.5">GitHub Stars: {repo.stars.toLocaleString()}</p>
+              <p className="text-gray-300 dark:text-zinc-300 leading-snug">
+                The number of GitHub users who have starred (bookmarked) this repo — a signal of community interest and adoption.
+              </p>
+            </div>
+          </div>
         </div>
       </div>
 

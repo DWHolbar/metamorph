@@ -10,11 +10,13 @@ export interface Repo {
   org: OrgName;
   stars: number;
   pushedAt: string;
+  createdAt: string;
   description: string | null;
   htmlUrl: string;
   language: string | null;
   topics: string[];
   isHiddenGem: boolean;
+  isNew: boolean;
   blogMentions: BlogPost[];
   activityScore: number;
 }
@@ -28,8 +30,30 @@ export interface DeltaResult {
     hiddenGemsCount: number;
     coveredCount: number;
     coveragePercent: number;
+    newReposCount: number;
     lastUpdated: string;
   };
   rateLimitWarning: boolean;
   scrapeErrors: string[];
 }
+
+export type ContentType =
+  | 'tweet-short'
+  | 'tweet-thread'
+  | 'linkedin'
+  | 'blog-outline'
+  | 'blog-full'
+  | 'newsletter'
+  | 'pr-pitch'
+  | 'technical-faq';
+
+export const CONTENT_TYPE_LABELS: Record<ContentType, string> = {
+  'tweet-short': 'Tweet (short)',
+  'tweet-thread': 'Tweet Thread',
+  linkedin: 'LinkedIn Post',
+  'blog-outline': 'Blog Post Outline',
+  'blog-full': 'Blog Post (full)',
+  newsletter: 'Newsletter Blurb',
+  'pr-pitch': 'PR Article Pitch',
+  'technical-faq': 'Technical FAQ',
+};

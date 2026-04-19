@@ -46,11 +46,13 @@ async function fetchReposForOrg(org: OrgName): Promise<Repo[]> {
         org,
         stars: Number(r.stargazers_count),
         pushedAt: String(r.pushed_at),
+        createdAt: String(r.created_at),
         description: r.description ? String(r.description) : null,
         htmlUrl: String(r.html_url),
         language: r.language ? String(r.language) : null,
         topics: Array.isArray(r.topics) ? (r.topics as string[]).map(String) : [],
         isHiddenGem: false,
+        isNew: false,
         blogMentions: [],
         activityScore: 0,
       });

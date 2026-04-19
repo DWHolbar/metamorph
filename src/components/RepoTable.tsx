@@ -171,7 +171,21 @@ export default function RepoTable({ repos }: { repos: Repo[] }) {
               <tr>
                 <th className="text-left px-4 py-3">{colHeader('Repo', 'name')}</th>
                 <th className="text-left px-4 py-3 hidden sm:table-cell">Org</th>
-                <th className="text-right px-4 py-3">{colHeader('Stars', 'stars')}</th>
+                <th className="text-right px-4 py-3">
+                  <div className="flex items-center justify-end gap-1 group/th relative">
+                    {colHeader('Stars', 'stars')}
+                    <span className="text-gray-300 dark:text-zinc-600 cursor-help">
+                      <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                        <circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/>
+                      </svg>
+                    </span>
+                    <div className="absolute top-full right-0 mt-1 w-52 hidden group-hover/th:block z-10 pointer-events-none">
+                      <div className="bg-gray-900 dark:bg-zinc-700 text-white text-xs rounded-lg px-3 py-2 shadow-lg">
+                        GitHub Stars — the number of users who have bookmarked this repo. Higher = more community interest &amp; adoption.
+                      </div>
+                    </div>
+                  </div>
+                </th>
                 <th className="text-left px-4 py-3 hidden md:table-cell">
                   {colHeader('Last Push', 'pushedAt')}
                 </th>
@@ -215,6 +229,11 @@ export default function RepoTable({ repos }: { repos: Repo[] }) {
                         >
                           {repo.name}
                         </a>
+                        {repo.isNew && (
+                          <span className="text-xs font-semibold px-1.5 py-0.5 rounded-full bg-emerald-100 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-400">
+                            New
+                          </span>
+                        )}
                       </div>
                     </td>
                     <td className="px-4 py-3 hidden sm:table-cell">
