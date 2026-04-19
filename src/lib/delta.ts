@@ -3,6 +3,7 @@ import type { Repo, BlogPost, DeltaResult } from './types';
 
 const GEM_MIN_STARS = parseInt(process.env.GEM_MIN_STARS ?? '5');
 const GEM_MAX_DAYS = parseInt(process.env.GEM_MIN_DAYS_SINCE_PUSH ?? '180');
+const NEW_REPO_DAYS = 30;
 
 function slugify(str: string): string {
   return str
@@ -57,6 +58,7 @@ export function computeDelta(
         : [];
 
     const daysSincePush = differenceInDays(new Date(), new Date(repo.pushedAt));
+    const daysSinceCreated = differenceInDays(new Date(), new Date(repo.createdAt));
     const isHighActivity =
       repo.stars >= GEM_MIN_STARS || daysSincePush <= GEM_MAX_DAYS;
     const score = computeActivityScore(repo);
@@ -65,6 +67,7 @@ export function computeDelta(
       ...repo,
       blogMentions,
       isHiddenGem: !mentioned && isHighActivity,
+      isNew: daysSinceCreated <= NEW_REPO_DAYS,
       activityScore: score,
     };
   });
@@ -72,6 +75,7 @@ export function computeDelta(
   const sorted = [...enriched].sort((a, b) => b.activityScore - a.activityScore);
   const hiddenGems = sorted.filter((r) => r.isHiddenGem);
   const coveredCount = sorted.filter((r) => r.blogMentions.length > 0).length;
+  const newReposCount = sorted.filter((r) => r.isNew).length;
 
   return {
     repos: sorted,
@@ -84,6 +88,7 @@ export function computeDelta(
       coveragePercent: Math.round(
         (coveredCount / Math.max(1, sorted.length)) * 100,
       ),
+      newReposCount,
       lastUpdated: new Date().toISOString(),
     },
   };

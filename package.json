@@ -16,7 +16,8 @@
     "fast-xml-parser": "^4.4.0",
     "date-fns": "^3.6.0",
     "clsx": "^2.1.0",
-    "tailwind-merge": "^2.3.0"
+    "tailwind-merge": "^2.3.0",
+    "@anthropic-ai/sdk": "^0.39.0"
   },
   "devDependencies": {
     "typescript": "^5.4.0",
