@@ -18,6 +18,8 @@ const TYPE_ICONS: Record<ContentType, string> = {
   newsletter: '📧',
   'pr-pitch': '📰',
   'technical-faq': '❓',
+  'testing-guide': '🧪',
+  'tool-review': '🔍',
 };
 
 export default function ContentStudio() {

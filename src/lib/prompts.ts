@@ -227,5 +227,101 @@ A: Visit the GitHub repository at ${url} for installation instructions, document
 
 **Q: Is ${name} actively maintained and production-ready?**
 A: ${name} is maintained by Trail of Bits and was last updated in ${lastPushMonth(repo)}. It has ${starsLabel(stars)} on GitHub. ${active ? 'The project has seen recent commits and is actively developed.' : 'The core functionality is stable — check the GitHub repository for the latest maintenance status.'} For production use, review the project's issue tracker and changelog for known limitations.`;
+
+    case 'testing-guide':
+      return `# Testing Guide: ${name}
+
+## Prerequisites
+
+Before testing ${name}, ensure the following are in place:
+
+- **Runtime:** ${lang !== 'multiple languages' ? `${lang} runtime installed and configured` : 'Language runtime installed per README requirements'}
+- **Dependencies:** All project dependencies resolved (see \`${url}\` for exact versions)
+- **Permissions:** Sufficient filesystem and network permissions for the test environment
+- **Hardware:** ${topic.includes('fuzzing') || topic.includes('analysis') ? 'Adequate CPU/RAM for compute-intensive analysis — minimum 4 cores, 8 GB RAM recommended' : 'Standard development machine — no special hardware required'}
+
+## Installation
+
+\`\`\`bash
+# Clone the repository
+git clone ${url}
+cd ${name}
+
+# Install dependencies
+${lang === 'Python' ? 'pip install -e ".[dev]"\n# or\npip install -r requirements.txt' : lang === 'Rust' ? 'cargo build --release' : lang === 'Go' ? 'go build ./...' : 'npm install\n# or see README for build steps'}
+\`\`\`
+
+## Smoke Test
+
+Run the built-in test suite to verify the installation is correct:
+
+\`\`\`bash
+${lang === 'Python' ? 'pytest tests/ -v' : lang === 'Rust' ? 'cargo test' : lang === 'Go' ? 'go test ./...' : 'npm test'}
+\`\`\`
+
+Expected: all tests pass with no errors. If any test fails, check the issue tracker at \`${url}/issues\`.
+
+## Functional Testing Scenarios
+
+### Scenario 1: Basic ${topic} workflow
+1. Prepare a target input (see the README's quickstart section for a sample)
+2. Run ${name} against the target
+3. Verify the output contains expected findings and no false positives on known-good inputs
+
+### Scenario 2: Edge cases
+- Empty or minimal input — ${name} should handle gracefully without panicking
+- Large input — verify performance stays within acceptable bounds
+- Malformed input — tool should reject with a clear error, not a crash
+
+### Scenario 3: Integration
+- Run ${name} as part of a CI pipeline step
+- Verify the exit code is non-zero on findings and zero on clean inputs (or vice versa — check the tool's contract in the README)
+
+## Reporting Issues
+
+When filing a bug against ${name}, include:
+- Exact command invoked
+- Input that triggered the issue (minimised if possible)
+- Full stderr/stdout output
+- ${lang !== 'multiple languages' ? `${lang} version (\`${lang === 'Python' ? 'python --version' : lang === 'Rust' ? 'rustc --version' : lang === 'Go' ? 'go version' : 'node --version'}\`)` : 'Runtime version'}
+- OS and architecture
+
+File issues at: ${url}/issues`;
+
+    case 'tool-review':
+      return `# Tool Review: ${name}
+
+**Repository:** ${url}
+**Organisation:** Trail of Bits (${repo.org})
+**Language:** ${lang !== 'multiple languages' ? lang : 'Multiple'}
+**Stars:** ${starsLabel(stars)}
+**Last updated:** ${lastPushMonth(repo)}
+**Status:** ${active ? 'Actively maintained' : 'Stable / maintenance mode'}
+
+---
+
+## Summary
+
+${name} is ${d}. Built by Trail of Bits — a security research firm with a track record of producing high-quality, production-grade open-source tooling — it targets practitioners working in${topics.length ? ` ${topicList}` : ' security engineering'}.
+
+## What It Does Well
+
+- **Focused scope:** ${name} solves a specific problem in the ${topic} space rather than attempting to be a general-purpose framework. This translates to a cleaner API and fewer sharp edges in day-to-day use.
+- **Open-source pedigree:** Trail of Bits open-sources tools they use internally on real client engagements. ${name} has been tested against real-world targets, not just synthetic benchmarks.
+- **${lang !== 'multiple languages' ? `${lang} implementation` : 'Multi-language support'}:** ${lang !== 'multiple languages' ? `Using ${lang} gives it access to a mature ecosystem and makes it straightforward to extend or integrate into existing ${lang} toolchains.` : 'The multi-language architecture means it fits into heterogeneous environments without requiring a dedicated runtime.'}
+
+## Limitations and Caveats
+
+- **Documentation depth:** Like many research-oriented tools, ${name} prioritises technical correctness over hand-holding. New users should expect to read the source alongside the README.
+- **Maintenance window:** Last push was ${lastPushMonth(repo)}. ${active ? 'The project is actively developed — check the issue tracker for the current roadmap.' : 'Verify open issues before depending on it in a critical pipeline.'}
+- **Community size:** With ${starsLabel(stars)}, the community is ${stars > 500 ? 'established — finding help and examples is straightforward' : 'small — for complex issues, opening a GitHub issue is the most reliable path to resolution'}.
+
+## Verdict
+
+${name} is a solid choice for security teams and engineers who need ${topics.length ? `${topic} tooling` : 'security tooling'} without vendor lock-in. It is not a plug-and-play product — expect to invest time in understanding how it models the problem — but that investment pays off in reliability and auditability.
+
+**Recommended for:** Security engineers, auditors, and developers who work in ${topics.length ? topicList : 'security-sensitive codebases'} and value open, inspectable tooling over commercial black boxes.
+
+→ **[View on GitHub](${url})**`;
   }
 }

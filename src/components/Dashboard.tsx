@@ -9,6 +9,13 @@ import BlogCoverage from './BlogCoverage';
 import SocialFeed from './SocialFeed';
 import RateLimitBanner from './RateLimitBanner';
 import LoadingSkeleton from './LoadingSkeleton';
+import {
+  computeNewNotifications,
+  getNotifications,
+  saveNotifications,
+  getPrevRepos,
+  savePrevRepos,
+} from '@/lib/notifications';
 
 // Hourly cache key — auto-refreshes every hour without any user action
 const CACHE_KEY = `delta-${new Date().toISOString().slice(0, 13)}`;
@@ -42,6 +49,16 @@ export default function Dashboard() {
         setIsStale(false);
         try {
           localStorage.setItem(CACHE_KEY, JSON.stringify(fresh));
+        } catch {}
+        // Compute notifications by diffing against previous fetch
+        try {
+          const prev = getPrevRepos();
+          const newNotifs = computeNewNotifications(prev, fresh.repos);
+          if (newNotifs.length > 0) {
+            saveNotifications([...newNotifs, ...getNotifications()]);
+            window.dispatchEvent(new Event('metamorph-notifications-updated'));
+          }
+          savePrevRepos(fresh.repos);
         } catch {}
       })
       .catch((err: unknown) => {

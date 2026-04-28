@@ -73,7 +73,9 @@ export type ContentType =
   | 'blog-full'
   | 'newsletter'
   | 'pr-pitch'
-  | 'technical-faq';
+  | 'technical-faq'
+  | 'testing-guide'
+  | 'tool-review';
 
 export const CONTENT_TYPE_LABELS: Record<ContentType, string> = {
   'tweet-short': 'Tweet (short)',
@@ -84,4 +86,6 @@ export const CONTENT_TYPE_LABELS: Record<ContentType, string> = {
   newsletter: 'Newsletter Blurb',
   'pr-pitch': 'PR Article Pitch',
   'technical-faq': 'Technical FAQ',
+  'testing-guide': 'Testing Guide',
+  'tool-review': 'Tool Review',
 };

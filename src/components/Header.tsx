@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import ThemeToggle from './ThemeToggle';
+import NotificationCenter from './NotificationCenter';
 
 interface HeaderProps {
   lastUpdated?: string;
@@ -59,6 +60,7 @@ export default function Header({ lastUpdated }: HeaderProps) {
               })}
             </span>
           )}
+          <NotificationCenter />
           <ThemeToggle />
         </div>
       </div>
