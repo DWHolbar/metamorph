@@ -15,6 +15,7 @@ export default function Header({ lastUpdated }: HeaderProps) {
   const navLinks = [
     { href: '/', label: 'Dashboard' },
     { href: '/content-studio', label: 'Content Studio' },
+    { href: '/3d', label: '3D Graph' },
   ];
 
   return (
