@@ -30,7 +30,44 @@ function lastPushMonth(repo: Repo): string {
   return new Date(repo.pushedAt).toLocaleDateString('en-US', { year: 'numeric', month: 'long' });
 }
 
-export function generateContent(repo: Repo, contentType: ContentType): string {
+// Extract install commands and usage blocks from a README string
+function extractReadmeSnippets(readme: string): { install: string; usage: string } {
+  if (!readme) return { install: '', usage: '' };
+
+  const lines = readme.split('\n');
+  let install = '';
+  let usage = '';
+
+  // Find installation section
+  const installIdx = lines.findIndex(l =>
+    /^#{1,3}\s*(install|installation|getting started|setup|quick ?start)/i.test(l)
+  );
+  if (installIdx !== -1) {
+    const section = lines.slice(installIdx + 1, installIdx + 40).join('\n');
+    const codeMatch = section.match(/```[\w]*\n([\s\S]+?)```/);
+    if (codeMatch) install = codeMatch[1].trim().slice(0, 600);
+  }
+
+  // Find usage section
+  const usageIdx = lines.findIndex(l =>
+    /^#{1,3}\s*(usage|use|example|quick ?start|getting started)/i.test(l)
+  );
+  if (usageIdx !== -1 && usageIdx !== installIdx) {
+    const section = lines.slice(usageIdx + 1, usageIdx + 50).join('\n');
+    const codeMatch = section.match(/```[\w]*\n([\s\S]+?)```/);
+    if (codeMatch) usage = codeMatch[1].trim().slice(0, 600);
+  }
+
+  // Fallback: grab first code block
+  if (!install) {
+    const firstBlock = readme.match(/```[\w]*\n([\s\S]+?)```/);
+    if (firstBlock) install = firstBlock[1].trim().slice(0, 400);
+  }
+
+  return { install, usage };
+}
+
+export function generateContent(repo: Repo, contentType: ContentType, variation = 0, readme = ''): string {
   const { name, htmlUrl: url, stars, language } = repo;
   const d = desc(repo);
   const lang = language ?? 'multiple languages';
@@ -228,100 +265,138 @@ A: Visit the GitHub repository at ${url} for installation instructions, document
 **Q: Is ${name} actively maintained and production-ready?**
 A: ${name} is maintained by Trail of Bits and was last updated in ${lastPushMonth(repo)}. It has ${starsLabel(stars)} on GitHub. ${active ? 'The project has seen recent commits and is actively developed.' : 'The core functionality is stable — check the GitHub repository for the latest maintenance status.'} For production use, review the project's issue tracker and changelog for known limitations.`;
 
-    case 'testing-guide':
+    case 'testing-guide': {
+      const { install, usage } = extractReadmeSnippets(readme);
+      const installBlock = install
+        ? `\`\`\`bash\n${install}\n\`\`\``
+        : `\`\`\`bash\n# Clone the repository\ngit clone ${url}\ncd ${name}\n\n# Install dependencies\n${lang === 'Python' ? 'pip install -e ".[dev]"\n# or: pip install -r requirements.txt' : lang === 'Rust' ? 'cargo build --release' : lang === 'Go' ? 'go build ./...' : lang === 'TypeScript' || lang === 'JavaScript' ? 'npm install' : '# See README for install steps'}\n\`\`\``;
+      const usageBlock = usage
+        ? `\`\`\`bash\n${usage}\n\`\`\``
+        : `\`\`\`bash\n# See the README at ${url} for usage examples\n\`\`\``;
+      const testCmd = lang === 'Python' ? 'pytest tests/ -v' : lang === 'Rust' ? 'cargo test' : lang === 'Go' ? 'go test ./...' : lang === 'TypeScript' || lang === 'JavaScript' ? 'npm test' : '# See README for test command';
+
       return `# Testing Guide: ${name}
 
-## Prerequisites
-
-Before testing ${name}, ensure the following are in place:
-
-- **Runtime:** ${lang !== 'multiple languages' ? `${lang} runtime installed and configured` : 'Language runtime installed per README requirements'}
-- **Dependencies:** All project dependencies resolved (see \`${url}\` for exact versions)
-- **Permissions:** Sufficient filesystem and network permissions for the test environment
-- **Hardware:** ${topic.includes('fuzzing') || topic.includes('analysis') ? 'Adequate CPU/RAM for compute-intensive analysis — minimum 4 cores, 8 GB RAM recommended' : 'Standard development machine — no special hardware required'}
-
-## Installation
-
-\`\`\`bash
-# Clone the repository
-git clone ${url}
-cd ${name}
-
-# Install dependencies
-${lang === 'Python' ? 'pip install -e ".[dev]"\n# or\npip install -r requirements.txt' : lang === 'Rust' ? 'cargo build --release' : lang === 'Go' ? 'go build ./...' : 'npm install\n# or see README for build steps'}
-\`\`\`
-
-## Smoke Test
-
-Run the built-in test suite to verify the installation is correct:
-
-\`\`\`bash
-${lang === 'Python' ? 'pytest tests/ -v' : lang === 'Rust' ? 'cargo test' : lang === 'Go' ? 'go test ./...' : 'npm test'}
-\`\`\`
-
-Expected: all tests pass with no errors. If any test fails, check the issue tracker at \`${url}/issues\`.
-
-## Functional Testing Scenarios
-
-### Scenario 1: Basic ${topic} workflow
-1. Prepare a target input (see the README's quickstart section for a sample)
-2. Run ${name} against the target
-3. Verify the output contains expected findings and no false positives on known-good inputs
-
-### Scenario 2: Edge cases
-- Empty or minimal input — ${name} should handle gracefully without panicking
-- Large input — verify performance stays within acceptable bounds
-- Malformed input — tool should reject with a clear error, not a crash
-
-### Scenario 3: Integration
-- Run ${name} as part of a CI pipeline step
-- Verify the exit code is non-zero on findings and zero on clean inputs (or vice versa — check the tool's contract in the README)
-
-## Reporting Issues
-
-When filing a bug against ${name}, include:
-- Exact command invoked
-- Input that triggered the issue (minimised if possible)
-- Full stderr/stdout output
-- ${lang !== 'multiple languages' ? `${lang} version (\`${lang === 'Python' ? 'python --version' : lang === 'Rust' ? 'rustc --version' : lang === 'Go' ? 'go version' : 'node --version'}\`)` : 'Runtime version'}
-- OS and architecture
-
-File issues at: ${url}/issues`;
-
-    case 'tool-review':
-      return `# Tool Review: ${name}
-
-**Repository:** ${url}
-**Organisation:** Trail of Bits (${repo.org})
-**Language:** ${lang !== 'multiple languages' ? lang : 'Multiple'}
-**Stars:** ${starsLabel(stars)}
-**Last updated:** ${lastPushMonth(repo)}
-**Status:** ${active ? 'Actively maintained' : 'Stable / maintenance mode'}
+> **Repo:** [${url}](${url})
+> **Language:** ${lang !== 'multiple languages' ? lang : 'See README'}  |  **Last pushed:** ${lastPushMonth(repo)}  |  **Stars:** ${starsLabel(stars)}
 
 ---
 
-## Summary
+## Prerequisites
 
-${name} is ${d}. Built by Trail of Bits — a security research firm with a track record of producing high-quality, production-grade open-source tooling — it targets practitioners working in${topics.length ? ` ${topicList}` : ' security engineering'}.
+- **${lang !== 'multiple languages' ? lang : 'Runtime'}** installed and available on your PATH
+- Git installed
+- ${topic.includes('fuzz') || topic.includes('analysis') ? 'Minimum 4 cores / 8 GB RAM recommended for analysis workloads' : 'Standard development machine — no special hardware required'}
+- (Optional) A target codebase or contract to run ${name} against${lang === 'Python' ? '\n- Recommended: Python 3.8+, create a virtual environment first (`python -m venv .venv && source .venv/bin/activate`)' : ''}
 
-## What It Does Well
+## Step 1 — Install
 
-- **Focused scope:** ${name} solves a specific problem in the ${topic} space rather than attempting to be a general-purpose framework. This translates to a cleaner API and fewer sharp edges in day-to-day use.
-- **Open-source pedigree:** Trail of Bits open-sources tools they use internally on real client engagements. ${name} has been tested against real-world targets, not just synthetic benchmarks.
-- **${lang !== 'multiple languages' ? `${lang} implementation` : 'Multi-language support'}:** ${lang !== 'multiple languages' ? `Using ${lang} gives it access to a mature ecosystem and makes it straightforward to extend or integrate into existing ${lang} toolchains.` : 'The multi-language architecture means it fits into heterogeneous environments without requiring a dedicated runtime.'}
+${installBlock}
 
-## Limitations and Caveats
+## Step 2 — Verify the installation
 
-- **Documentation depth:** Like many research-oriented tools, ${name} prioritises technical correctness over hand-holding. New users should expect to read the source alongside the README.
-- **Maintenance window:** Last push was ${lastPushMonth(repo)}. ${active ? 'The project is actively developed — check the issue tracker for the current roadmap.' : 'Verify open issues before depending on it in a critical pipeline.'}
-- **Community size:** With ${starsLabel(stars)}, the community is ${stars > 500 ? 'established — finding help and examples is straightforward' : 'small — for complex issues, opening a GitHub issue is the most reliable path to resolution'}.
+\`\`\`bash
+${testCmd}
+\`\`\`
+
+All tests should pass. If you see failures, open an issue at ${url}/issues with your environment details.
+
+## Step 3 — Run ${name} on a real target
+
+${usageBlock}
+
+${topic ? `**What to look for:** ${name} focuses on ${topicList}. A successful run will surface specific, actionable findings rather than generic warnings. Note any false positives — these are worth reporting upstream.` : ''}
+
+## Step 4 — Stress-test it
+
+| Test case | Expected behaviour |
+|-----------|-------------------|
+| Empty / minimal input | Exits cleanly with a clear message, no crash |
+| Large codebase / long input | Completes within a reasonable time; logs progress |
+| Malformed / invalid input | Returns a non-zero exit code with a descriptive error |
+| CI mode (no TTY) | Produces machine-parseable output; does not hang |
+
+## Step 5 — Write up your findings
+
+After testing, document:
+1. **What worked well** — findings that matched real vulnerabilities or issues
+2. **False positive rate** — how much noise vs signal did you get?
+3. **Performance** — time and memory on your target
+4. **Integration friction** — what would you change to make it fit your workflow?
+
+Share your write-up on GitHub Discussions at ${url} or open a PR improving the docs.
+
+## Filing a bug report
+
+Include in your issue:
+- Exact command and arguments
+- Minimal reproducing input (stripped of sensitive data)
+- Full stdout/stderr
+- ${lang !== 'multiple languages' ? `\`${lang === 'Python' ? 'python --version' : lang === 'Rust' ? 'rustc --version' : lang === 'Go' ? 'go version' : 'node --version'}\` output` : 'Runtime version'}
+- OS and architecture (\`uname -a\`)
+
+→ **[Open an issue](${url}/issues)**`;
+    }
+
+
+
+    case 'tool-review': {
+      const { install: ri, usage: ru } = extractReadmeSnippets(readme);
+      return `# Tool Review: ${name}
+
+| | |
+|---|---|
+| **Repository** | [${url}](${url}) |
+| **Organisation** | Trail of Bits — ${repo.org} |
+| **Language** | ${lang !== 'multiple languages' ? lang : 'Multiple'} |
+| **Stars** | ${starsLabel(stars)} |
+| **Last commit** | ${lastPushMonth(repo)} |
+| **Status** | ${active ? 'Actively maintained' : 'Stable / maintenance mode'} |
+| **Topics** | ${topicList || '—'} |
+
+---
+
+## What is ${name}?
+
+${name} is ${d}. It is developed and maintained by Trail of Bits, a security research firm whose open-source tools are tested on real client engagements before being published.${langPhrase(repo)}
+
+## Installation
+
+${ri ? `From the README:\n\n\`\`\`bash\n${ri}\n\`\`\`` : `\`\`\`bash\ngit clone ${url}\ncd ${name}\n# See README for install steps\n\`\`\``}
+
+## How it works
+
+${name} targets the ${topic} problem space${topics.length > 1 ? `, with particular depth in ${topics.slice(0, 2).join(' and ')}` : ''}. Rather than applying broad heuristics, it:
+
+- Analyses its input with structured, auditable logic
+- Surfaces findings that are specific and actionable — not just surface-level warnings
+- Integrates into existing workflows${lang !== 'multiple languages' ? ` via the ${lang} ecosystem` : ' without requiring a dedicated runtime'}
+
+${ru ? `### Example usage\n\n\`\`\`bash\n${ru}\n\`\`\`` : ''}
+
+## Strengths
+
+**Focused scope.** ${name} solves one problem well instead of trying to be a general-purpose framework. The API surface is small, which means fewer surprises and easier integration.
+
+**Auditable implementation.** Because it is fully open-source${lang !== 'multiple languages' ? ` and written in ${lang}` : ''}, you can inspect exactly what it does and why — a meaningful advantage over commercial black-box tools in high-assurance environments.
+
+**Real-world validation.** Trail of Bits uses these tools on paid security engagements. ${name} has been tested against production codebases, not just CTF samples.
+
+## Limitations
+
+**Documentation assumes domain knowledge.** The README is technically accurate but written for practitioners. New users will benefit from reading the source alongside the docs.
+
+**Community size.** With ${starsLabel(stars)}, ${stars > 1000 ? 'the community is established and finding help is straightforward' : 'the community is focused — for complex issues, GitHub Issues is the most reliable channel'}.
+
+**Maintenance cadence.** Last updated ${lastPushMonth(repo)}. ${active ? 'Active development is ongoing.' : 'The core is stable; verify open issues before adding it to a critical pipeline.'}
 
 ## Verdict
 
-${name} is a solid choice for security teams and engineers who need ${topics.length ? `${topic} tooling` : 'security tooling'} without vendor lock-in. It is not a plug-and-play product — expect to invest time in understanding how it models the problem — but that investment pays off in reliability and auditability.
+${name} is a technically sound choice for security engineers, auditors, and developers who need ${topics.length ? `${topic} tooling` : 'security tooling'} they can trust, extend, and ship. It rewards the time investment to understand it.
 
-**Recommended for:** Security engineers, auditors, and developers who work in ${topics.length ? topicList : 'security-sensitive codebases'} and value open, inspectable tooling over commercial black boxes.
+**Best suited for:** Teams in ${topics.length ? topicList : 'security-sensitive environments'} who value auditability and open-source supply-chain transparency over commercial convenience.
 
-→ **[View on GitHub](${url})**`;
+→ **[Explore ${name} on GitHub](${url})**`;
+    }
   }
 }
