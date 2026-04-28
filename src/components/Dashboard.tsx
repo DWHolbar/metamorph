@@ -21,6 +21,7 @@ import {
   isReturningUser,
   welcomeMessage,
   refreshVisit,
+  getProgress,
 } from '@/lib/userProgress';
 
 // Hourly cache key — auto-refreshes every hour without any user action
@@ -75,12 +76,9 @@ export default function Dashboard() {
         } catch {}
         // Update user progress and set welcome message for returning users
         try {
-          const { newRepos } = refreshVisit(fresh.stats.totalRepos);
-          void newRepos; // used inside welcomeMessage via lastRepoCount
-          const p = (await import('@/lib/userProgress')).getProgress();
-          if (p && returning) {
-            setWelcomeMsg(welcomeMessage(p, fresh.stats.totalRepos));
-          }
+          refreshVisit(fresh.stats.totalRepos);
+          const p = getProgress();
+          if (p && returning) setWelcomeMsg(welcomeMessage(p, fresh.stats.totalRepos));
         } catch {}
       })
       .catch((err: unknown) => {
