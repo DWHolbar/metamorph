@@ -16,6 +16,12 @@ import {
   getPrevRepos,
   savePrevRepos,
 } from '@/lib/notifications';
+import {
+  initProgress,
+  isReturningUser,
+  welcomeMessage,
+  refreshVisit,
+} from '@/lib/userProgress';
 
 // Hourly cache key — auto-refreshes every hour without any user action
 const CACHE_KEY = `delta-${new Date().toISOString().slice(0, 13)}`;
@@ -25,8 +31,15 @@ export default function Dashboard() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isStale, setIsStale] = useState(false);
+  const [welcomeMsg, setWelcomeMsg] = useState<string | null>(null);
+  const [returning, setReturning] = useState(false);
+  const [welcomeDismissed, setWelcomeDismissed] = useState(false);
 
   useEffect(() => {
+    // Check returning user before first render
+    if (isReturningUser()) setReturning(true);
+    initProgress();
+
     // Show cached data immediately for fast perceived load
     try {
       const raw = localStorage.getItem(CACHE_KEY);
@@ -59,6 +72,15 @@ export default function Dashboard() {
             window.dispatchEvent(new Event('metamorph-notifications-updated'));
           }
           savePrevRepos(fresh.repos);
+        } catch {}
+        // Update user progress and set welcome message for returning users
+        try {
+          const { newRepos } = refreshVisit(fresh.stats.totalRepos);
+          void newRepos; // used inside welcomeMessage via lastRepoCount
+          const p = (await import('@/lib/userProgress')).getProgress();
+          if (p && returning) {
+            setWelcomeMsg(welcomeMessage(p, fresh.stats.totalRepos));
+          }
         } catch {}
       })
       .catch((err: unknown) => {
@@ -133,6 +155,21 @@ export default function Dashboard() {
             <span className="text-orange-600 dark:text-orange-400 font-mono">lifting-bits</span>
             {' '}— refreshes every hour automatically.
           </p>
+          {/* Welcome-back banner for returning users */}
+          {returning && welcomeMsg && !welcomeDismissed && (
+            <div className="mt-3 flex items-center gap-3 px-4 py-2.5 rounded-xl border border-emerald-200 dark:border-emerald-800 bg-emerald-50 dark:bg-emerald-950/30 text-sm text-emerald-700 dark:text-emerald-400">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="shrink-0">
+                <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>
+              </svg>
+              <span className="flex-1">Welcome back. {welcomeMsg}</span>
+              <button onClick={() => setWelcomeDismissed(true)} className="shrink-0 text-emerald-400 dark:text-emerald-600 hover:text-emerald-600 dark:hover:text-emerald-400 transition-colors">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+                </svg>
+              </button>
+            </div>
+          )}
+
           {isStale && (
             <p className="mt-2 text-xs text-gray-400 dark:text-zinc-600 flex items-center gap-1.5">
               <span className="relative flex h-1.5 w-1.5">
