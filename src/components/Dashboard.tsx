@@ -8,7 +8,6 @@ import RepoTable from './RepoTable';
 import BlogCoverage from './BlogCoverage';
 import SocialFeed from './SocialFeed';
 import LoadingSkeleton from './LoadingSkeleton';
-import SiteGuide from './SiteGuide';
 import {
   computeNewNotifications,
   getNotifications,
@@ -35,7 +34,6 @@ export default function Dashboard() {
   const [welcomeMsg, setWelcomeMsg] = useState<string | null>(null);
   const [returning, setReturning] = useState(false);
   const [welcomeDismissed, setWelcomeDismissed] = useState(false);
-  const [guideHighlight, setGuideHighlight] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     // Check returning user before first render
@@ -88,16 +86,6 @@ export default function Dashboard() {
           setLoading(false);
         }
       });
-    // Listen for AI guide highlight actions
-    const guideHandler = (e: Event) => {
-      const detail = (e as CustomEvent<{ repoNames: string[]; action: string }>).detail;
-      if (detail.action === 'highlight') {
-        setGuideHighlight(new Set(detail.repoNames));
-        setTimeout(() => setGuideHighlight(new Set()), 8000);
-      }
-    };
-    window.addEventListener('metamorph-guide-action', guideHandler);
-    return () => window.removeEventListener('metamorph-guide-action', guideHandler);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -203,7 +191,7 @@ export default function Dashboard() {
           <>
             <StatsBar stats={data.stats} />
             <div className="grid grid-cols-1 xl:grid-cols-[1fr_360px] gap-6 items-start">
-              <RepoTable repos={data.repos} guideHighlight={guideHighlight} />
+              <RepoTable repos={data.repos} />
               <div className="rounded-xl border border-gray-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-4">
                 <SocialFeed
                   newsArticles={data.newsArticles ?? []}
@@ -216,8 +204,6 @@ export default function Dashboard() {
           </>
         )}
       </main>
-
-      {data && <SiteGuide repos={data.repos} />}
 
       <footer className="border-t border-gray-200 dark:border-zinc-800 mt-16">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 flex items-center justify-between text-xs text-gray-400 dark:text-zinc-600">

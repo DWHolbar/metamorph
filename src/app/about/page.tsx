@@ -107,34 +107,11 @@ export default function AboutPage() {
           </Step>
         </BlueprintSection>
 
-        {/* Site Guide */}
-        <BlueprintSection delay={100}>
-          <Step number="03" label="Site Guide">
-            <p className="text-gray-500 dark:text-zinc-400 mb-4">
-              The floating chat widget in the bottom-right corner searches repos entirely in the browser —
-              no API key or server call required.
-            </p>
-            <ul className="space-y-3 mb-4">
-              {[
-                ['Keyword scoring', 'Each repo is scored by how well it matches your query across name, description, topics, language, and org. Name matches score highest.'],
-                ['Detailed single-repo answers', 'A strong single match returns the repo\'s description, language, star count, and whether it\'s a Hidden Gem.'],
-                ['Table highlighting', 'Matched repos are highlighted in the dashboard table via a browser CustomEvent — no page navigation needed.'],
-                ['Attribute queries', 'Ask for "hidden gems", "new repos", "Python tools", or "recently active" and the scorer applies targeted boosts.'],
-              ].map(([term, detail]) => (
-                <li key={term} className="flex gap-3">
-                  <span className="text-emerald-500 mt-1 shrink-0">▸</span>
-                  <p className="text-sm text-gray-500 dark:text-zinc-400">
-                    <strong className="text-gray-800 dark:text-zinc-200">{term}:</strong>{' '}{detail}
-                  </p>
-                </li>
-              ))}
-            </ul>
-          </Step>
-        </BlueprintSection>
+
 
         {/* Content Studio */}
         <BlueprintSection delay={100}>
-          <Step number="04" label="Content Studio">
+          <Step number="03" label="Content Studio">
             <p className="text-gray-500 dark:text-zinc-400 mb-4">
               The <Link href="/content-studio" className="text-blue-500 hover:underline">Content Studio</Link> generates
               marketing content using deterministic template strings filled with live repo metadata

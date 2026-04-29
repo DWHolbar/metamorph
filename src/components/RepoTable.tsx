@@ -41,7 +41,7 @@ function SortIcon({ active, dir }: { active: boolean; dir: SortDir }) {
   );
 }
 
-export default function RepoTable({ repos, guideHighlight = new Set() }: { repos: Repo[]; guideHighlight?: Set<string> }) {
+export default function RepoTable({ repos }: { repos: Repo[] }) {
   const [tab, setTab] = useState<ViewTab>('all');
   const [search, setSearch] = useState('');
   const [activeOrgs, setActiveOrgs] = useState<Set<OrgName>>(new Set(ALL_ORGS));
@@ -202,9 +202,7 @@ export default function RepoTable({ repos, guideHighlight = new Set() }: { repos
                 paged.map((repo) => (
                   <tr key={`${repo.org}/${repo.name}`}
                     className={`transition-colors ${
-                      guideHighlight.has(repo.name)
-                        ? 'bg-emerald-100 dark:bg-emerald-900/30 ring-1 ring-inset ring-emerald-400 dark:ring-emerald-600'
-                        : repo.isHiddenGem
+                      repo.isHiddenGem
                           ? 'bg-amber-50/40 dark:bg-amber-950/10 hover:bg-amber-50 dark:hover:bg-amber-950/20'
                           : repo.blogMentions.length > 0
                             ? 'bg-emerald-50/30 dark:bg-emerald-950/10 hover:bg-emerald-50/60 dark:hover:bg-emerald-950/20'
