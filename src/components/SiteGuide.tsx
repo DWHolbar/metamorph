@@ -10,7 +10,7 @@ interface Message {
 
 interface GuideAction {
   repoNames: string[];
-  action: 'highlight' | 'fly-to' | 'info';
+  action: 'highlight' | 'info';
 }
 
 export default function SiteGuide({ repos }: { repos: Repo[] }) {
@@ -35,47 +35,6 @@ export default function SiteGuide({ repos }: { repos: Repo[] }) {
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
-
-  // Listen for external insights-query events (from PerformanceInsights overlay)
-  useEffect(() => {
-    const handler = (e: Event) => {
-      const { query: q } = (e as CustomEvent<{ query: string }>).detail;
-      if (!q) return;
-      setOpen(true);
-      setQuery(q);
-      // Auto-submit after a short delay to let the panel open
-      setTimeout(() => {
-        setQuery('');
-        setMessages((m) => [...m, { role: 'user', text: q }]);
-        setLoading(true);
-        fetch('/api/guide', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ query: q, repos }),
-        })
-          .then((r) => r.json())
-          .then((data: { message?: string; repoNames?: string[]; action?: string }) => {
-            setMessages((m) => [...m, { role: 'guide', text: data.message ?? '...' }]);
-            if (data.repoNames && data.repoNames.length > 0) {
-              window.dispatchEvent(
-                new CustomEvent<GuideAction>('metamorph-guide-action', {
-                  detail: {
-                    repoNames: data.repoNames as string[],
-                    action: (data.action ?? 'highlight') as GuideAction['action'],
-                  },
-                }),
-              );
-            }
-          })
-          .catch(() => {
-            setMessages((m) => [...m, { role: 'guide', text: 'Sorry, could not reach the guide API.' }]);
-          })
-          .finally(() => setLoading(false));
-      }, 300);
-    };
-    window.addEventListener('metamorph-insights-query', handler);
-    return () => window.removeEventListener('metamorph-insights-query', handler);
-  }, [repos]);
 
   async function send() {
     const q = query.trim();

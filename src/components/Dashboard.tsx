@@ -91,7 +91,7 @@ export default function Dashboard() {
     // Listen for AI guide highlight actions
     const guideHandler = (e: Event) => {
       const detail = (e as CustomEvent<{ repoNames: string[]; action: string }>).detail;
-      if (detail.action === 'highlight' || detail.action === 'fly-to') {
+      if (detail.action === 'highlight') {
         setGuideHighlight(new Set(detail.repoNames));
         setTimeout(() => setGuideHighlight(new Set()), 8000);
       }

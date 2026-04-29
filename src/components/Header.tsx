@@ -13,7 +13,6 @@ interface HeaderProps {
 const PRIMARY_LINKS = [
   { href: '/', label: 'Dashboard' },
   { href: '/content-studio', label: 'Content Studio' },
-  { href: '/3d', label: '3D Graph' },
 ];
 
 const MORE_LINKS = [
