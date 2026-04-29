@@ -1,7 +1,7 @@
 import { XMLParser } from 'fast-xml-parser';
 import type { NewsArticle, HNPost, Tweet } from './types';
 
-async function safeFetch(url: string, timeoutMs = 8000): Promise<Response | null> {
+async function safeFetch(url: string, timeoutMs = 4000): Promise<Response | null> {
   const controller = new AbortController();
   const id = setTimeout(() => controller.abort(), timeoutMs);
   try {
@@ -88,25 +88,28 @@ const NITTER_INSTANCES = [
 ];
 
 export async function fetchTweets(repoNames: string[]): Promise<Tweet[]> {
-  for (const nitterUrl of NITTER_INSTANCES) {
-    const res = await safeFetch(nitterUrl, 5000);
-    if (!res) continue;
-    try {
-      const xml = await res.text();
-      const parser = new XMLParser({ ignoreAttributes: false });
-      const parsed = parser.parse(xml);
-      const raw = parsed?.rss?.channel?.item ?? [];
-      const items: Record<string, string>[] = Array.isArray(raw) ? raw : [raw];
-      return items.slice(0, 20).map((item) => {
-        const text = String(item.title ?? '');
-        const tweetUrl = String(item.link ?? '')
-          .replace(/^https?:\/\/nitter\.[^/]+/, 'https://x.com');
-        const publishedAt = String(item.pubDate ?? '');
-        return { text, url: tweetUrl, publishedAt, repoMatches: matchRepos(text, repoNames) };
-      });
-    } catch {
-      continue;
-    }
+  const parser = new XMLParser({ ignoreAttributes: false });
+
+  const tryInstance = async (nitterUrl: string): Promise<Tweet[]> => {
+    const res = await safeFetch(nitterUrl, 3000);
+    if (!res) throw new Error('no response');
+    const xml = await res.text();
+    const parsed = parser.parse(xml);
+    const raw = parsed?.rss?.channel?.item ?? [];
+    const items: Record<string, string>[] = Array.isArray(raw) ? raw : [raw];
+    if (items.length === 0) throw new Error('empty feed');
+    return items.slice(0, 20).map((item) => {
+      const text = String(item.title ?? '');
+      const tweetUrl = String(item.link ?? '').replace(/^https?:\/\/nitter\.[^/]+/, 'https://x.com');
+      const publishedAt = String(item.pubDate ?? '');
+      return { text, url: tweetUrl, publishedAt, repoMatches: matchRepos(text, repoNames) };
+    });
+  };
+
+  try {
+    // Race all instances simultaneously — first successful result wins
+    return await Promise.any(NITTER_INSTANCES.map(tryInstance));
+  } catch {
+    return [];
   }
-  return [];
 }

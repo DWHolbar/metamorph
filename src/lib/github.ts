@@ -28,7 +28,7 @@ async function fetchReposForOrg(org: OrgName): Promise<Repo[]> {
   while (url) {
     const res = await fetch(url, {
       headers,
-      signal: AbortSignal.timeout(8000),
+      signal: AbortSignal.timeout(5000),
     });
 
     if (!res.ok) {

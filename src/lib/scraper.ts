@@ -10,7 +10,7 @@ const FETCH_HEADERS = {
   'Accept-Language': 'en-US,en;q=0.9',
 };
 
-async function safeFetch(url: string, timeout = 7000): Promise<string | null> {
+async function safeFetch(url: string, timeout = 4000): Promise<string | null> {
   try {
     const res = await fetch(url, {
       headers: FETCH_HEADERS,
@@ -24,32 +24,26 @@ async function safeFetch(url: string, timeout = 7000): Promise<string | null> {
 }
 
 export async function scrapeBlog(): Promise<BlogPost[]> {
-  const posts: BlogPost[] = [];
   const parser = new XMLParser({ ignoreAttributes: false });
   const seen = new Set<string>();
+  const posts: BlogPost[] = [];
 
-  // Primary: RSS feed with pagination
-  for (let page = 1; page <= 5; page++) {
-    const url =
-      page === 1
-        ? 'https://blog.trailofbits.com/feed/'
-        : `https://blog.trailofbits.com/feed/?paged=${page}`;
+  // Fetch first 3 RSS pages in parallel
+  const rssUrls = [
+    'https://blog.trailofbits.com/feed/',
+    'https://blog.trailofbits.com/feed/?paged=2',
+    'https://blog.trailofbits.com/feed/?paged=3',
+  ];
+  const rssResults = await Promise.allSettled(rssUrls.map((url) => safeFetch(url)));
 
-    const text = await safeFetch(url);
-    if (!text) break;
-
+  for (const result of rssResults) {
+    if (result.status !== 'fulfilled' || !result.value) continue;
     try {
-      const feed = parser.parse(text) as Record<string, unknown>;
-      const channel = (feed?.rss as Record<string, unknown>)?.channel as Record<
-        string,
-        unknown
-      >;
+      const feed = parser.parse(result.value) as Record<string, unknown>;
+      const channel = (feed?.rss as Record<string, unknown>)?.channel as Record<string, unknown>;
       const items = channel?.item;
-      if (!items) break;
-
+      if (!items) continue;
       const arr = Array.isArray(items) ? items : [items];
-      if (arr.length === 0) break;
-
       for (const item of arr as Record<string, unknown>[]) {
         const title = item.title ? String(item.title) : null;
         const link = item.link ? String(item.link) : null;
@@ -58,33 +52,22 @@ export async function scrapeBlog(): Promise<BlogPost[]> {
           posts.push({ title, url: link });
         }
       }
-    } catch {
-      break;
-    }
+    } catch { continue; }
   }
 
-  // Fallback: HTML scraping
+  // Fallback: single HTML page scrape
   if (posts.length === 0) {
-    for (let page = 1; page <= 3; page++) {
-      const url =
-        page === 1
-          ? 'https://blog.trailofbits.com/'
-          : `https://blog.trailofbits.com/page/${page}/`;
-
-      const html = await safeFetch(url);
-      if (!html) break;
-
+    const html = await safeFetch('https://blog.trailofbits.com/');
+    if (html) {
       const $ = load(html);
-      $('article h2 a, article h1 a, .post-title a, h2.entry-title a').each(
-        (_, el) => {
-          const title = $(el).text().trim();
-          const href = $(el).attr('href');
-          if (title && href && !seen.has(href)) {
-            seen.add(href);
-            posts.push({ title, url: href });
-          }
-        },
-      );
+      $('article h2 a, article h1 a, .post-title a, h2.entry-title a').each((_, el) => {
+        const title = $(el).text().trim();
+        const href = $(el).attr('href');
+        if (title && href && !seen.has(href)) {
+          seen.add(href);
+          posts.push({ title, url: href });
+        }
+      });
     }
   }
 

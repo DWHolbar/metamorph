@@ -5,7 +5,6 @@ import { computeDelta } from '@/lib/delta';
 import { fetchNewsArticles, fetchHNPosts, fetchTweets } from '@/lib/social';
 
 export const dynamic = 'force-dynamic';
-export const maxDuration = 60;
 
 export async function GET() {
   try {

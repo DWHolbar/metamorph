@@ -7,7 +7,7 @@ export const dynamic = 'force-dynamic';
 interface GuideResponse {
   message: string;
   repoNames: string[];
-  action: 'highlight' | 'fly-to' | 'info';
+  action: 'highlight' | 'info';
 }
 
 const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
@@ -44,13 +44,12 @@ Given a user query, identify the most relevant repositories and respond with ONL
 {
   "message": "A short, helpful reply (1-3 sentences, technical and specific)",
   "repoNames": ["repo-name-1", "repo-name-2"],
-  "action": "highlight" | "fly-to" | "info"
+  "action": "highlight" | "info"
 }
 
 action meanings:
-- "highlight": filter/highlight matching repos in the table and 3D graph
-- "fly-to": navigate the 3D camera to the first matching repo node
-- "info": answer a question without navigating anywhere
+- "highlight": filter/highlight matching repos in the dashboard table
+- "info": answer a question without highlighting any repos
 
 Rules:
 - repoNames must be exact repo.name values from the list below
