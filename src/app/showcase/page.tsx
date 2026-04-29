@@ -1,179 +1,169 @@
 import type { Metadata } from 'next';
-import Link from 'next/link';
 import Header from '@/components/Header';
 import CodeBlock from '@/components/CodeBlock';
 
 export const metadata: Metadata = {
-  title: 'Shader & Interaction Library — Metamorph',
-  description: 'Copy-paste Three.js and React Three Fiber patterns used in the Metamorph 3D repo graph — fibonacci sphere layout, emissive pulse shaders, camera fly-to animations.',
+  title: 'Code Showcase — Metamorph',
+  description: 'Copy-paste TypeScript patterns used in Metamorph: custom event bus, parallel data fetching, IntersectionObserver scroll animations, and more.',
 };
 
 const SNIPPETS = [
   {
-    title: 'Fibonacci Sphere Layout',
-    description: 'Distributes N nodes evenly across a sphere surface using the golden ratio. Used to position repo nodes within each org cluster — avoids poles and clustering artifacts.',
+    title: 'Parallel Data Fetching with Timeouts',
+    description: 'Run multiple external fetches concurrently using Promise.allSettled. Each fetch has an individual timeout via AbortSignal so one slow source never blocks the others.',
     language: 'typescript',
-    code: `function fibonacciSphere(n: number, radius: number): THREE.Vector3[] {
-  const pts: THREE.Vector3[] = [];
-  const phi = Math.PI * (3 - Math.sqrt(5)); // golden angle
-
-  for (let i = 0; i < n; i++) {
-    const y = 1 - (i / Math.max(n - 1, 1)) * 2; // -1 to 1
-    const r = Math.sqrt(1 - y * y);
-    const theta = phi * i;
-    pts.push(new THREE.Vector3(
-      Math.cos(theta) * r * radius,
-      y * radius,
-      Math.sin(theta) * r * radius,
-    ));
+    code: `async function safeFetch(url: string, timeoutMs = 4000): Promise<Response | null> {
+  const controller = new AbortController();
+  const id = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    const res = await fetch(url, { signal: controller.signal });
+    clearTimeout(id);
+    return res.ok ? res : null;
+  } catch {
+    clearTimeout(id);
+    return null;
   }
-  return pts;
 }
 
-// Usage: 80 nodes on a sphere of radius 120
-const positions = fibonacciSphere(80, 120);`,
+// All sources run in parallel — slow or failing sources don't block others
+const [githubResult, blogResult, hnResult] = await Promise.allSettled([
+  fetchGitHubRepos(),
+  scrapeBlog(),
+  fetchHNPosts(),
+]);
+
+const repos  = githubResult.status === 'fulfilled' ? githubResult.value : [];
+const posts  = blogResult.status  === 'fulfilled' ? blogResult.value  : [];
+const hnData = hnResult.status    === 'fulfilled' ? hnResult.value    : [];`,
   },
   {
-    title: 'Emissive Pulse (Hidden Gem Shader)',
-    description: 'Uses useFrame to animate the emissiveIntensity of a MeshStandardMaterial over time. Hidden gems pulse amber; highlighted repos pulse white at double frequency.',
+    title: 'Racing Multiple Fallback Sources',
+    description: 'When you have many equivalent endpoints (CDN mirrors, public APIs), race them all simultaneously and take the first successful response. Avoids sequential timeouts.',
     language: 'typescript',
-    code: `function PulsingNode({ isGem, highlighted }: { isGem: boolean; highlighted: boolean }) {
-  const meshRef = useRef<THREE.Mesh>(null);
+    code: `const MIRRORS = [
+  'https://api-1.example.com/feed',
+  'https://api-2.example.com/feed',
+  'https://api-3.example.com/feed',
+];
 
-  useFrame(({ clock }) => {
-    if (!meshRef.current) return;
-    const mat = meshRef.current.material as THREE.MeshStandardMaterial;
+async function fetchFromMirror(url: string): Promise<Data[]> {
+  const res = await safeFetch(url, 3000);
+  if (!res) throw new Error('no response');
+  const data = await res.json() as { items?: Data[] };
+  if (!data.items?.length) throw new Error('empty');
+  return data.items;
+}
 
-    if (highlighted) {
-      // Fast white pulse for AI-highlighted repos
-      mat.emissiveIntensity = 0.8 + Math.sin(clock.getElapsedTime() * 4) * 0.2;
-    } else if (isGem) {
-      // Slow amber pulse for hidden gems
-      mat.emissiveIntensity = 0.4 + Math.sin(clock.getElapsedTime() * 2) * 0.3;
+// First mirror to respond with valid data wins
+// Promise.any rejects only if ALL mirrors fail
+try {
+  const results = await Promise.any(MIRRORS.map(fetchFromMirror));
+  return results;
+} catch {
+  return []; // all mirrors failed or timed out
+}`,
+  },
+  {
+    title: 'Custom Event Bus (Cross-Component)',
+    description: 'Dispatch actions between isolated React trees without prop drilling or a state management library. Uses the browser\'s native CustomEvent API.',
+    language: 'typescript',
+    code: `// ── Dispatch from any component ─────────────────────────────────────────────
+window.dispatchEvent(
+  new CustomEvent('app-action', {
+    detail: { type: 'highlight', ids: ['repo-1', 'repo-2'] },
+  })
+);
+
+// ── Listen in another component ──────────────────────────────────────────────
+useEffect(() => {
+  type ActionDetail = { type: string; ids: string[] };
+
+  const handler = (e: Event) => {
+    const { type, ids } = (e as CustomEvent<ActionDetail>).detail;
+    if (type === 'highlight') {
+      setHighlighted(new Set(ids));
+      setTimeout(() => setHighlighted(new Set()), 8000); // auto-clear
     }
-  });
+  };
+
+  window.addEventListener('app-action', handler);
+  return () => window.removeEventListener('app-action', handler);
+}, []);`,
+  },
+  {
+    title: 'IntersectionObserver Scroll Animations',
+    description: 'Animate elements into view as the user scrolls using the native IntersectionObserver API. No animation library needed — pure CSS transitions triggered by a class swap.',
+    language: 'typescript',
+    code: `'use client';
+import { useEffect, useRef } from 'react';
+
+export default function AnimatedSection({
+  children,
+  delay = 0,
+}: {
+  children: React.ReactNode;
+  delay?: number;
+}) {
+  const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) {
+          el.style.transitionDelay = \`\${delay}ms\`;
+          el.classList.add('opacity-100', 'translate-y-0');
+          observer.unobserve(el); // fire once
+        }
+      },
+      { threshold: 0.15 },
+    );
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [delay]);
 
   return (
-    <mesh ref={meshRef}>
-      <sphereGeometry args={[2, 20, 20]} />
-      <meshStandardMaterial
-        color={isGem ? '#f59e0b' : '#3b82f6'}
-        emissive={isGem ? '#f59e0b' : '#3b82f6'}
-        emissiveIntensity={isGem ? 0.4 : 0.25}
-        roughness={0.3}
-        metalness={0.4}
-      />
-    </mesh>
+    <div
+      ref={ref}
+      className="opacity-0 translate-y-8 transition-all duration-700 ease-out"
+    >
+      {children}
+    </div>
   );
 }`,
   },
   {
-    title: 'Camera Fly-To (useFrame Lerp)',
-    description: 'Smoothly animates the camera to a target world position by lerping camera.position each frame. Automatically stops when within 2 units of the destination.',
+    title: 'Stale-While-Revalidate with localStorage',
+    description: 'Show cached data immediately for instant perceived load, then fetch fresh data in the background and update the UI. Hourly cache key auto-expires without any cleanup logic.',
     language: 'typescript',
-    code: `function CameraController({ target }: { target: THREE.Vector3 | null }) {
-  const { camera } = useThree();
-  const currentTarget = useRef<THREE.Vector3 | null>(null);
+    code: `// Cache key rotates every hour automatically
+const CACHE_KEY = \`data-\${new Date().toISOString().slice(0, 13)}\`;
 
-  // Sync external prop changes into the ref
-  useEffect(() => {
-    if (target) currentTarget.current = target;
-  }, [target]);
-
-  useFrame(() => {
-    if (!currentTarget.current) return;
-
-    // Offset camera slightly above and behind the target node
-    const dest = currentTarget.current
-      .clone()
-      .add(new THREE.Vector3(0, 30, 80));
-
-    camera.position.lerp(dest, 0.04); // 0.04 = smooth, 0.1 = snappy
-
-    // Stop lerping once close enough
-    if (camera.position.distanceTo(dest) < 2) {
-      currentTarget.current = null;
-    }
-  });
-
-  return null; // no rendered output
-}`,
-  },
-  {
-    title: 'Device Capability Detection (LOD)',
-    description: 'Detects hardware capabilities on mount and returns quality settings. Used to automatically reduce sphere segments, star count, and canvas DPR on mobile and low-end devices.',
-    language: 'typescript',
-    code: `interface DeviceCapabilities {
-  sphereSegments: number;
-  starsCount: number;
-  dpr: [number, number];
-  autoRotate: boolean;
-}
-
-function detectCapabilities(): DeviceCapabilities {
-  const lowEnd =
-    (navigator.hardwareConcurrency ?? 2) <= 2 ||
-    window.innerWidth < 768;
-
-  return {
-    sphereSegments: lowEnd ? 8 : 20,   // geometry complexity
-    starsCount: lowEnd ? 800 : 3000,    // background star count
-    dpr: lowEnd ? [1, 1] : [1, 1.5],   // canvas device pixel ratio
-    autoRotate: window.innerWidth >= 768,
-  };
-}
-
-// In your root component:
-const caps = useMemo(() => detectCapabilities(), []);
-
-// Pass to Canvas and Scene
-<Canvas dpr={caps.dpr}>
-  <Stars count={caps.starsCount} />
-  <OrbitControls autoRotate={caps.autoRotate} />
-  <sphereGeometry args={[radius, caps.sphereSegments, caps.sphereSegments]} />
-</Canvas>`,
-  },
-  {
-    title: 'Custom Event Bus (Cross-Component Communication)',
-    description: 'Pattern for dispatching actions between isolated React trees (e.g. SiteGuide → Dashboard → RepoGraph3D) without prop drilling. Used for guide highlighting and insights queries.',
-    language: 'typescript',
-    code: `// ── Dispatch from SiteGuide ─────────────────────────────────────────────────
-window.dispatchEvent(
-  new CustomEvent('metamorph-guide-action', {
-    detail: {
-      repoNames: ['slither', 'echidna'],
-      action: 'fly-to',           // 'highlight' | 'fly-to' | 'info'
-    },
-  })
-);
-
-// ── Listen in RepoGraph3D ────────────────────────────────────────────────────
 useEffect(() => {
-  const handler = (e: Event) => {
-    const { repoNames, action } =
-      (e as CustomEvent<{ repoNames: string[]; action: string }>).detail;
-
-    setHighlighted(new Set(repoNames));
-    if (action === 'fly-to') {
-      const target = repoMap.get(repoNames[0]);
-      if (target) setFlyTarget(target.worldPos.clone());
+  // 1. Show cached data immediately (instant paint)
+  try {
+    const raw = localStorage.getItem(CACHE_KEY);
+    if (raw) {
+      setData(JSON.parse(raw));
+      setLoading(false);
+      setIsStale(true);
     }
-    setTimeout(() => setHighlighted(new Set()), 8000);
-  };
-  window.addEventListener('metamorph-guide-action', handler);
-  return () => window.removeEventListener('metamorph-guide-action', handler);
-}, [repoMap]);
+  } catch {}
 
-// ── Listen in Dashboard (table row highlighting) ─────────────────────────────
-useEffect(() => {
-  const handler = (e: Event) => {
-    const { repoNames } =
-      (e as CustomEvent<{ repoNames: string[] }>).detail;
-    setGuideHighlight(new Set(repoNames));
-    setTimeout(() => setGuideHighlight(new Set()), 8000);
-  };
-  window.addEventListener('metamorph-guide-action', handler);
-  return () => window.removeEventListener('metamorph-guide-action', handler);
+  // 2. Fetch fresh data in background
+  fetch('/api/data')
+    .then((r) => r.json())
+    .then((fresh) => {
+      setData(fresh);
+      setIsStale(false);
+      try { localStorage.setItem(CACHE_KEY, JSON.stringify(fresh)); } catch {}
+    })
+    .catch((err) => {
+      // Only show error if we have no cached data to fall back on
+      if (!data) setError(String(err));
+    });
 }, []);`,
   },
 ];
@@ -185,17 +175,12 @@ export default function ShowcasePage() {
       <main className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
         <div className="mb-10">
           <h1 className="text-3xl sm:text-4xl font-bold text-gray-900 dark:text-zinc-100 mb-3">
-            Shader & Interaction Library
+            Code Showcase
           </h1>
           <p className="text-gray-500 dark:text-zinc-400 max-w-2xl">
-            The Three.js and React Three Fiber patterns powering the Metamorph 3D graph.
-            Each snippet is self-contained and copy-paste ready.
+            TypeScript patterns used throughout Metamorph. Each snippet is self-contained
+            and copy-paste ready.
           </p>
-          <div className="flex items-center gap-3 mt-4 text-xs text-gray-400 dark:text-zinc-600">
-            <span className="px-2 py-1 rounded bg-gray-100 dark:bg-zinc-800 font-mono">three ^0.169</span>
-            <span className="px-2 py-1 rounded bg-gray-100 dark:bg-zinc-800 font-mono">@react-three/fiber ^8.17</span>
-            <span className="px-2 py-1 rounded bg-gray-100 dark:bg-zinc-800 font-mono">@react-three/drei ^9.122</span>
-          </div>
         </div>
 
         <div className="space-y-10">
@@ -206,18 +191,6 @@ export default function ShowcasePage() {
               <CodeBlock title={s.title} language={s.language} code={s.code} />
             </section>
           ))}
-        </div>
-
-        <div className="mt-12 rounded-2xl border border-gray-200 dark:border-zinc-800 bg-gray-50 dark:bg-zinc-900 p-6 text-center">
-          <p className="text-sm text-gray-600 dark:text-zinc-400 mb-4">
-            Want to see these patterns in action?
-          </p>
-          <Link
-            href="/3d"
-            className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-semibold text-sm transition-colors"
-          >
-            Open 3D Graph →
-          </Link>
         </div>
       </main>
     </>

@@ -64,11 +64,8 @@ async function fetchReposForOrg(org: OrgName): Promise<Repo[]> {
   return repos;
 }
 
-export async function fetchAllOrgs(): Promise<{
-  repos: Repo[];
-  rateLimitWarning: boolean;
-}> {
+export async function fetchAllOrgs(): Promise<{ repos: Repo[] }> {
   const results = await Promise.allSettled(ORGS.map(fetchReposForOrg));
   const repos = results.flatMap((r) => (r.status === 'fulfilled' ? r.value : []));
-  return { repos, rateLimitWarning: !process.env.GITHUB_TOKEN };
+  return { repos };
 }

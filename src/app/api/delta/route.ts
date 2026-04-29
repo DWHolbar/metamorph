@@ -27,7 +27,7 @@ export async function GET() {
       );
     }
 
-    const { repos, rateLimitWarning } = orgsResult.value;
+    const { repos } = orgsResult.value;
     const blogSources = blogResult.status === 'fulfilled' ? blogResult.value : [];
     const opensourceNames = opensourceResult.status === 'fulfilled' ? opensourceResult.value : [];
     const rawNews = newsResult.status === 'fulfilled' ? newsResult.value : [];
@@ -64,7 +64,6 @@ export async function GET() {
       newsArticles,
       hnPosts,
       tweets,
-      rateLimitWarning,
       scrapeErrors,
     });
   } catch (err) {

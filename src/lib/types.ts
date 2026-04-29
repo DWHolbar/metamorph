@@ -61,7 +61,6 @@ export interface DeltaResult {
     newReposCount: number;
     lastUpdated: string;
   };
-  rateLimitWarning: boolean;
   scrapeErrors: string[];
 }
 
