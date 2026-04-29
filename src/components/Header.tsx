@@ -18,7 +18,7 @@ const PRIMARY_LINKS = [
 const MORE_LINKS = [
   { href: '/roi', label: 'ROI Calculator', desc: 'Calculate time saved' },
   { href: '/templates', label: 'Templates', desc: 'All 10 content types' },
-  { href: '/showcase', label: 'Showcase', desc: 'Three.js code snippets' },
+  { href: '/showcase', label: 'Showcase', desc: 'TypeScript patterns' },
   { href: '/about', label: 'Blueprint', desc: 'How Metamorph works' },
 ];
 
