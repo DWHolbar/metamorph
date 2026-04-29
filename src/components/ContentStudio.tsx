@@ -60,6 +60,23 @@ export default function ContentStudio() {
       .catch(() => setLoadingRepos(false));
   }, []);
 
+  // Auto-select repo from URL params (e.g. from 3D graph "Generate content →" CTA)
+  useEffect(() => {
+    if (repos.length === 0) return;
+    const params = new URLSearchParams(window.location.search);
+    const repoParam = params.get('repo');
+    const orgParam = params.get('org');
+    if (!repoParam) return;
+    const match = repos.find(
+      (r) => r.name === repoParam && (!orgParam || r.org === orgParam)
+    );
+    if (match) {
+      setSelectedRepo(match);
+      if (!match.isHiddenGem) setFilter('all');
+      setSearch(match.name);
+    }
+  }, [repos]);
+
   const filteredRepos = repos
     .filter((r) => {
       if (filter === 'gems' && !r.isHiddenGem) return false;
