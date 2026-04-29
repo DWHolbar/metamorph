@@ -5,7 +5,7 @@ import BlueprintSection from '@/components/BlueprintSection';
 
 export const metadata: Metadata = {
   title: 'Blueprint — How Metamorph Works',
-  description: 'A technical walkthrough of how Metamorph aggregates GitHub repos, scrapes blog coverage, computes hidden gems, and renders a real-time 3D visualization with an AI guide.',
+  description: 'A technical walkthrough of how Metamorph aggregates GitHub repos, scrapes blog coverage, computes hidden gems, and surfaces repo intelligence.',
 };
 
 export default function AboutPage() {
@@ -23,7 +23,7 @@ export default function AboutPage() {
             </h1>
             <p className="text-lg text-gray-500 dark:text-zinc-400 max-w-xl mx-auto">
               Metamorph is a live intelligence layer over Trail of Bits open-source work.
-              Here&apos;s the full stack — from raw GitHub API calls to the 3D graph you see.
+              Here&apos;s the full stack — from raw GitHub API calls to the dashboard you see.
             </p>
           </div>
         </BlueprintSection>
@@ -75,7 +75,7 @@ export default function AboutPage() {
                 },
                 {
                   step: 'Blog scraper',
-                  detail: 'Paginated RSS fetch from blog.trailofbits.com/feed/ (5 pages). Falls back to HTML scraping via cheerio if RSS fails. Returns post titles and URLs.',
+                  detail: 'Parallel RSS fetch from blog.trailofbits.com/feed/ (3 pages simultaneously). Falls back to HTML scraping via cheerio if RSS fails. Returns post titles and URLs.',
                   icon: (
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-gray-400">
                       <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/>
@@ -107,20 +107,19 @@ export default function AboutPage() {
           </Step>
         </BlueprintSection>
 
-        {/* 3D Graph */}
+        {/* Site Guide */}
         <BlueprintSection delay={100}>
-          <Step number="03" label="3D Visualization">
+          <Step number="03" label="Site Guide">
             <p className="text-gray-500 dark:text-zinc-400 mb-4">
-              The <Link href="/3d" className="text-blue-500 hover:underline">3D graph</Link> renders
-              every repo as a sphere in a Three.js canvas via React Three Fiber. Key design decisions:
+              The floating chat widget in the bottom-right corner searches repos entirely in the browser —
+              no API key or server call required.
             </p>
-            <ul className="space-y-3">
+            <ul className="space-y-3 mb-4">
               {[
-                ['Fibonacci sphere layout', 'Each org cluster arranges its repos on a sphere surface using the golden angle — evenly distributed with no poles or clustering.'],
-                ['Node size = log10(stars)', 'Star count maps to sphere radius via a log scale so repos with 10k stars don\'t dwarf everything else.'],
-                ['Emissive pulse for Hidden Gems', 'Amber repos pulse with sin(time) on their emissiveIntensity — drawing the eye without requiring interaction.'],
-                ['Device-aware LOD', 'On first render, detectCapabilities() checks hardwareConcurrency and screen width. Mobile gets 8-segment spheres and 800 stars; desktop gets 20-segment and 3000.'],
-                ['Camera fly-to', 'When the AI guide identifies a repo, a CameraController lerps camera.position toward the world-space position of the target node over ~1.5s.'],
+                ['Keyword scoring', 'Each repo is scored by how well it matches your query across name, description, topics, language, and org. Name matches score highest.'],
+                ['Detailed single-repo answers', 'A strong single match returns the repo\'s description, language, star count, and whether it\'s a Hidden Gem.'],
+                ['Table highlighting', 'Matched repos are highlighted in the dashboard table via a browser CustomEvent — no page navigation needed.'],
+                ['Attribute queries', 'Ask for "hidden gems", "new repos", "Python tools", or "recently active" and the scorer applies targeted boosts.'],
               ].map(([term, detail]) => (
                 <li key={term} className="flex gap-3">
                   <span className="text-emerald-500 mt-1 shrink-0">▸</span>
@@ -133,37 +132,13 @@ export default function AboutPage() {
           </Step>
         </BlueprintSection>
 
-        {/* AI Guide */}
-        <BlueprintSection delay={100}>
-          <Step number="04" label="AI Site Guide">
-            <p className="text-gray-500 dark:text-zinc-400 mb-4">
-              The floating chat widget sends your query to <code className="text-xs font-mono bg-gray-100 dark:bg-zinc-800 px-1.5 py-0.5 rounded">POST /api/guide</code> along with
-              up to 150 repos as minimal context (name, org, stars, description, isHiddenGem).
-            </p>
-            <p className="text-gray-500 dark:text-zinc-400 mb-4">
-              Claude Opus 4.7 with adaptive thinking responds with structured JSON:
-            </p>
-            <pre className="text-xs font-mono bg-gray-50 dark:bg-zinc-900 border border-gray-200 dark:border-zinc-800 rounded-xl p-4 mb-4 overflow-x-auto text-gray-700 dark:text-zinc-300">
-{`{
-  "message": "Here are the top Ethereum security tools...",
-  "repoNames": ["slither", "echidna", "medusa"],
-  "action": "fly-to"
-}`}
-            </pre>
-            <p className="text-gray-500 dark:text-zinc-400">
-              The response fires a <code className="text-xs font-mono bg-gray-100 dark:bg-zinc-800 px-1 rounded">metamorph-guide-action</code> CustomEvent.
-              Both the Dashboard (table highlighting) and RepoGraph3D (camera fly-to + node pulse) listen for it.
-            </p>
-          </Step>
-        </BlueprintSection>
-
         {/* Content Studio */}
         <BlueprintSection delay={100}>
-          <Step number="05" label="Content Studio">
+          <Step number="04" label="Content Studio">
             <p className="text-gray-500 dark:text-zinc-400 mb-4">
               The <Link href="/content-studio" className="text-blue-500 hover:underline">Content Studio</Link> generates
-              marketing content without any API calls for most types — it uses deterministic template strings
-              filled with live repo metadata (name, org, stars, description, topics, language, blog mentions).
+              marketing content using deterministic template strings filled with live repo metadata
+              (name, org, stars, description, topics, language, blog mentions).
             </p>
             <p className="text-gray-500 dark:text-zinc-400 mb-4">
               For <strong className="text-gray-800 dark:text-zinc-200">testing-guide</strong> and{' '}
@@ -176,7 +151,7 @@ export default function AboutPage() {
                 ['Template-based (8 types)', 'Zero cost, instant, deterministic'],
                 ['README-augmented (2 types)', 'Fetches GitHub README, parses commands'],
                 ['Variation cycling', '+1 counter seeds different phrase branches'],
-                ['Pre-select from 3D', 'Hover any node → Generate content → auto-selects'],
+                ['10 content formats', 'Tweets, LinkedIn, blog, newsletter, PR pitch, FAQ, and more'],
               ].map(([feat, detail]) => (
                 <div key={feat} className="rounded-xl border border-gray-200 dark:border-zinc-800 p-3">
                   <p className="text-sm font-semibold text-gray-800 dark:text-zinc-200 mb-0.5">{feat}</p>
@@ -191,7 +166,7 @@ export default function AboutPage() {
         <BlueprintSection delay={100}>
           <div className="text-center border-t border-gray-200 dark:border-zinc-800 pt-16">
             <p className="text-gray-500 dark:text-zinc-400 mb-6">
-              All of this runs on Vercel Hobby tier — no paid infrastructure required beyond the Anthropic API key.
+              All of this runs on Vercel Hobby tier — no paid infrastructure required.
             </p>
             <div className="flex items-center justify-center gap-3 flex-wrap">
               <Link href="/" className="px-5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-semibold text-sm transition-colors">
