@@ -7,7 +7,6 @@ import StatsBar from './StatsBar';
 import RepoTable from './RepoTable';
 import BlogCoverage from './BlogCoverage';
 import SocialFeed from './SocialFeed';
-import RateLimitBanner from './RateLimitBanner';
 import LoadingSkeleton from './LoadingSkeleton';
 import SiteGuide from './SiteGuide';
 import {
@@ -192,7 +191,6 @@ export default function Dashboard() {
         </div>
 
         {/* Banners */}
-        {data?.rateLimitWarning && <RateLimitBanner />}
         {data?.scrapeErrors && data.scrapeErrors.length > 0 && (
           <div className="rounded-xl border border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-900/50 px-4 py-3 text-xs text-zinc-500 dark:text-zinc-500 space-y-1">
             {data.scrapeErrors.map((e, i) => (
