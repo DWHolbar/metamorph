@@ -172,8 +172,8 @@ export default function AboutPage() {
               <Link href="/" className="px-5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-semibold text-sm transition-colors">
                 Open Dashboard
               </Link>
-              <Link href="/showcase" className="px-5 py-2.5 rounded-xl border border-gray-200 dark:border-zinc-700 hover:bg-gray-100 dark:hover:bg-zinc-800 text-gray-700 dark:text-zinc-300 font-semibold text-sm transition-colors">
-                Browse Code Snippets
+              <Link href="/content-studio" className="px-5 py-2.5 rounded-xl border border-gray-200 dark:border-zinc-700 hover:bg-gray-100 dark:hover:bg-zinc-800 text-gray-700 dark:text-zinc-300 font-semibold text-sm transition-colors">
+                Content Studio
               </Link>
             </div>
           </div>
