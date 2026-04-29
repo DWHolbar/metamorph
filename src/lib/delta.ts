@@ -1,5 +1,19 @@
 import { differenceInDays } from 'date-fns';
-import type { Repo, BlogPost, DeltaResult } from './types';
+import type { Repo, BlogPost } from './types';
+
+type DeltaCore = {
+  repos: Repo[];
+  hiddenGems: Repo[];
+  blogSources: BlogPost[];
+  stats: {
+    totalRepos: number;
+    hiddenGemsCount: number;
+    coveredCount: number;
+    coveragePercent: number;
+    newReposCount: number;
+    lastUpdated: string;
+  };
+};
 
 const GEM_MIN_STARS = parseInt(process.env.GEM_MIN_STARS ?? '5');
 const GEM_MAX_DAYS = parseInt(process.env.GEM_MIN_DAYS_SINCE_PUSH ?? '180');
@@ -43,7 +57,7 @@ export function computeDelta(
   repos: Repo[],
   blogSources: BlogPost[],
   opensourceNames: string[],
-): Omit<DeltaResult, 'rateLimitWarning' | 'scrapeErrors'> {
+): DeltaCore {
   const corpus = slugify(
     [...blogSources.map((p) => p.title), ...opensourceNames].join(' '),
   );

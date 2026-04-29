@@ -1,71 +1,48 @@
 import { NextResponse } from 'next/server';
-import Anthropic from '@anthropic-ai/sdk';
-import { buildPrompt } from '@/lib/prompts';
+import { generateContent } from '@/lib/prompts';
 import type { Repo, ContentType } from '@/lib/types';
 
 export const dynamic = 'force-dynamic';
-export const maxDuration = 60;
 
-const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
+async function fetchReadme(org: string, name: string): Promise<string> {
+  try {
+    const headers: Record<string, string> = { Accept: 'application/vnd.github.v3+json' };
+    if (process.env.GITHUB_TOKEN) headers['Authorization'] = `Bearer ${process.env.GITHUB_TOKEN}`;
+    const res = await fetch(`https://api.github.com/repos/${org}/${name}/readme`, {
+      headers,
+      signal: AbortSignal.timeout(6000),
+    });
+    if (!res.ok) return '';
+    const data = await res.json() as { content?: string };
+    if (!data.content) return '';
+    return Buffer.from(data.content, 'base64').toString('utf-8').slice(0, 5000);
+  } catch {
+    return '';
+  }
+}
 
 export async function POST(req: Request) {
-  if (!process.env.ANTHROPIC_API_KEY) {
-    return NextResponse.json(
-      { error: 'ANTHROPIC_API_KEY is not configured.', details: 'Add ANTHROPIC_API_KEY to your Vercel environment variables, then redeploy.' },
-      { status: 500 },
-    );
-  }
-
-  let repo: Repo, contentType: ContentType;
+  let repo: Repo, contentType: ContentType, variation: number;
   try {
-    const body = await req.json();
+    const body = await req.json() as { repo: Repo; contentType: ContentType; variation?: number };
     repo = body.repo;
     contentType = body.contentType;
+    variation = typeof body.variation === 'number' ? body.variation : 0;
     if (!repo || !contentType) throw new Error('Missing repo or contentType');
   } catch {
     return NextResponse.json({ error: 'Invalid request body' }, { status: 400 });
   }
 
+  // Fetch README for content types that benefit from real repo data
+  const needsReadme = contentType === 'testing-guide' || contentType === 'tool-review';
+  const readme = needsReadme ? await fetchReadme(repo.org, repo.name) : '';
+
   try {
-    const prompt = buildPrompt(repo, contentType);
-
-    const message = await client.messages.create({
-      model: 'claude-opus-4-7',
-      max_tokens: 2048,
-      messages: [{ role: 'user', content: prompt }],
-    });
-
-    const content =
-      message.content[0].type === 'text' ? message.content[0].text : '';
-
+    const content = generateContent(repo, contentType, variation, readme);
     return NextResponse.json({ content });
   } catch (err) {
-    if (err instanceof Anthropic.AuthenticationError) {
-      return NextResponse.json(
-        { error: 'Invalid Anthropic API key.', details: 'Check that ANTHROPIC_API_KEY is correct in your Vercel environment variables and redeploy.' },
-        { status: 401 },
-      );
-    }
-    if (err instanceof Anthropic.PermissionDeniedError) {
-      return NextResponse.json(
-        { error: 'Anthropic API permission denied.', details: String(err) },
-        { status: 403 },
-      );
-    }
-    if (err instanceof Anthropic.RateLimitError) {
-      return NextResponse.json(
-        { error: 'Anthropic rate limit hit.', details: 'Too many requests — wait a moment and try again.' },
-        { status: 429 },
-      );
-    }
-    if (err instanceof Anthropic.APIError) {
-      return NextResponse.json(
-        { error: `Anthropic API error (${err.status}).`, details: err.message },
-        { status: 500 },
-      );
-    }
     return NextResponse.json(
-      { error: 'Generation failed.', details: String(err) },
+      { error: 'Content generation failed', details: String(err) },
       { status: 500 },
     );
   }

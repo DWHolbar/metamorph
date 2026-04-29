@@ -5,6 +5,31 @@ export interface BlogPost {
   url: string;
 }
 
+export interface NewsArticle {
+  title: string;
+  url: string;
+  source: string;
+  publishedAt: string;
+  repoMatches: string[];
+}
+
+export interface HNPost {
+  title: string;
+  url: string;
+  hnUrl: string;
+  points: number;
+  numComments: number;
+  publishedAt: string;
+  repoMatches: string[];
+}
+
+export interface Tweet {
+  text: string;
+  url: string;
+  publishedAt: string;
+  repoMatches: string[];
+}
+
 export interface Repo {
   name: string;
   org: OrgName;
@@ -25,6 +50,9 @@ export interface DeltaResult {
   repos: Repo[];
   hiddenGems: Repo[];
   blogSources: BlogPost[];
+  newsArticles: NewsArticle[];
+  hnPosts: HNPost[];
+  tweets: Tweet[];
   stats: {
     totalRepos: number;
     hiddenGemsCount: number;
@@ -45,7 +73,9 @@ export type ContentType =
   | 'blog-full'
   | 'newsletter'
   | 'pr-pitch'
-  | 'technical-faq';
+  | 'technical-faq'
+  | 'testing-guide'
+  | 'tool-review';
 
 export const CONTENT_TYPE_LABELS: Record<ContentType, string> = {
   'tweet-short': 'Tweet (short)',
@@ -56,4 +86,6 @@ export const CONTENT_TYPE_LABELS: Record<ContentType, string> = {
   newsletter: 'Newsletter Blurb',
   'pr-pitch': 'PR Article Pitch',
   'technical-faq': 'Technical FAQ',
+  'testing-guide': 'Testing Guide',
+  'tool-review': 'Tool Review',
 };

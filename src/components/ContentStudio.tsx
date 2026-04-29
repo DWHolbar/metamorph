@@ -7,7 +7,7 @@ import Header from './Header';
 
 const CONTENT_TYPES = Object.entries(CONTENT_TYPE_LABELS) as [ContentType, string][];
 
-const CACHE_KEY = `delta-${new Date().toISOString().slice(0, 10)}`;
+const CACHE_KEY = `delta-${new Date().toISOString().slice(0, 13)}`;
 
 const TYPE_ICONS: Record<ContentType, string> = {
   'tweet-short': '𝕏',
@@ -18,6 +18,8 @@ const TYPE_ICONS: Record<ContentType, string> = {
   newsletter: '📧',
   'pr-pitch': '📰',
   'technical-faq': '❓',
+  'testing-guide': '🧪',
+  'tool-review': '🔍',
 };
 
 export default function ContentStudio() {
@@ -29,6 +31,7 @@ export default function ContentStudio() {
   const [generating, setGenerating] = useState(false);
   const [genError, setGenError] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
+  const [variation, setVariation] = useState(0);
   const [search, setSearch] = useState('');
   const [filter, setFilter] = useState<'all' | 'gems'>('gems');
   const outputRef = useRef<HTMLTextAreaElement>(null);
@@ -48,12 +51,31 @@ export default function ContentStudio() {
     fetch('/api/delta')
       .then((r) => r.json())
       .then((data: DeltaResult) => {
-        setRepos(data.repos);
+        if (Array.isArray(data.repos) && data.repos.length > 0) {
+          setRepos(data.repos);
+          try { localStorage.setItem(CACHE_KEY, JSON.stringify(data)); } catch {}
+        }
         setLoadingRepos(false);
-        try { localStorage.setItem(CACHE_KEY, JSON.stringify(data)); } catch {}
       })
       .catch(() => setLoadingRepos(false));
   }, []);
+
+  // Auto-select repo from URL params (e.g. from 3D graph "Generate content →" CTA)
+  useEffect(() => {
+    if (repos.length === 0) return;
+    const params = new URLSearchParams(window.location.search);
+    const repoParam = params.get('repo');
+    const orgParam = params.get('org');
+    if (!repoParam) return;
+    const match = repos.find(
+      (r) => r.name === repoParam && (!orgParam || r.org === orgParam)
+    );
+    if (match) {
+      setSelectedRepo(match);
+      if (!match.isHiddenGem) setFilter('all');
+      setSearch(match.name);
+    }
+  }, [repos]);
 
   const filteredRepos = repos
     .filter((r) => {
@@ -63,7 +85,7 @@ export default function ContentStudio() {
     })
     .slice(0, 80);
 
-  async function generate() {
+  async function generate(v = variation) {
     if (!selectedRepo) return;
     setGenerating(true);
     setGenError(null);
@@ -73,16 +95,22 @@ export default function ContentStudio() {
       const res = await fetch('/api/generate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ repo: selectedRepo, contentType }),
+        body: JSON.stringify({ repo: selectedRepo, contentType, variation: v }),
       });
-      const data = await res.json();
+      const data = await res.json() as { content?: string; error?: string; details?: string };
       if (!res.ok) throw new Error(data.details || data.error || 'Unknown error');
-      setGenerated(data.content);
+      setGenerated(data.content ?? '');
     } catch (err) {
       setGenError(err instanceof Error ? err.message : String(err));
     } finally {
       setGenerating(false);
     }
+  }
+
+  async function tryAnotherVersion() {
+    const next = variation + 1;
+    setVariation(next);
+    await generate(next);
   }
 
   async function copyToClipboard() {
@@ -163,7 +191,7 @@ export default function ContentStudio() {
                   filteredRepos.map((repo) => (
                     <button
                       key={`${repo.org}/${repo.name}`}
-                      onClick={() => { setSelectedRepo(repo); setGenerated(''); setGenError(null); }}
+                      onClick={() => { setSelectedRepo(repo); setGenerated(''); setGenError(null); setVariation(0); }}
                       className={`w-full text-left px-4 py-3 hover:bg-gray-50 dark:hover:bg-zinc-800/50 transition-colors ${
                         selectedRepo?.name === repo.name && selectedRepo?.org === repo.org
                           ? 'bg-emerald-50 dark:bg-emerald-950/20 border-l-2 border-emerald-500'
@@ -205,52 +233,72 @@ export default function ContentStudio() {
 
           {/* RIGHT: Content generator */}
           <div className="flex flex-col gap-4">
-            {/* Selected repo info */}
+            {/* Selected repo info + data verification */}
             {selectedRepo ? (
-              <div className="rounded-2xl border border-gray-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-4 flex items-start gap-3">
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <span className="font-mono font-bold text-gray-900 dark:text-zinc-100">
-                      {selectedRepo.name}
-                    </span>
-                    {selectedRepo.isHiddenGem && (
-                      <span className="text-xs px-2 py-0.5 rounded-full bg-amber-100 dark:bg-amber-950/50 text-amber-700 dark:text-amber-400">
-                        Hidden Gem
+              <div className="rounded-2xl border border-gray-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-4 space-y-3">
+                <div className="flex items-start gap-3">
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className="font-mono font-bold text-gray-900 dark:text-zinc-100">
+                        {selectedRepo.name}
                       </span>
+                      {selectedRepo.isHiddenGem && (
+                        <span className="text-xs px-2 py-0.5 rounded-full bg-amber-100 dark:bg-amber-950/50 text-amber-700 dark:text-amber-400">
+                          Hidden Gem
+                        </span>
+                      )}
+                      {selectedRepo.isNew && (
+                        <span className="text-xs px-2 py-0.5 rounded-full bg-emerald-100 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-400">
+                          New
+                        </span>
+                      )}
+                    </div>
+                    {selectedRepo.description && (
+                      <p className="text-sm text-gray-500 dark:text-zinc-400 mt-1 line-clamp-2">
+                        {selectedRepo.description}
+                      </p>
                     )}
-                    {selectedRepo.isNew && (
-                      <span className="text-xs px-2 py-0.5 rounded-full bg-emerald-100 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-400">
-                        New
+                    <div className="flex items-center gap-3 mt-2 text-xs text-gray-400 dark:text-zinc-600">
+                      <span className="flex items-center gap-1">
+                        <svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor" className="text-amber-400">
+                          <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
+                        </svg>
+                        {selectedRepo.stars.toLocaleString()} stars
                       </span>
-                    )}
+                      {selectedRepo.language && <span>{selectedRepo.language}</span>}
+                      <span>{selectedRepo.org}</span>
+                    </div>
                   </div>
-                  {selectedRepo.description && (
-                    <p className="text-sm text-gray-500 dark:text-zinc-400 mt-1 line-clamp-2">
-                      {selectedRepo.description}
-                    </p>
-                  )}
-                  <div className="flex items-center gap-3 mt-2 text-xs text-gray-400 dark:text-zinc-600">
-                    <span className="flex items-center gap-1">
-                      <svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor" className="text-amber-400">
-                        <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
-                      </svg>
-                      {selectedRepo.stars.toLocaleString()} GitHub stars
-                    </span>
-                    {selectedRepo.language && <span>{selectedRepo.language}</span>}
-                    <span>{selectedRepo.org}</span>
+                  <a
+                    href={selectedRepo.htmlUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="shrink-0 text-xs text-gray-400 dark:text-zinc-600 hover:text-emerald-500 transition-colors"
+                  >
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/>
+                      <polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/>
+                    </svg>
+                  </a>
+                </div>
+
+                {/* Data verification panel */}
+                <div className="border-t border-gray-100 dark:border-zinc-800 pt-3">
+                  <p className="text-xs text-gray-400 dark:text-zinc-600 mb-2 font-medium uppercase tracking-wide">Data used for generation</p>
+                  <div className="flex flex-wrap gap-2">
+                    {[
+                      { label: 'Description', ok: !!selectedRepo.description, detail: selectedRepo.description ? `${selectedRepo.description.length} chars` : 'missing — generic fallback used' },
+                      { label: 'Language', ok: !!selectedRepo.language, detail: selectedRepo.language ?? 'not detected' },
+                      { label: 'Topics', ok: selectedRepo.topics.length > 0, detail: selectedRepo.topics.length > 0 ? `${selectedRepo.topics.length} topics` : 'none' },
+                      { label: 'Stars', ok: true, detail: selectedRepo.stars.toLocaleString() },
+                      { label: 'README', ok: contentType === 'testing-guide' || contentType === 'tool-review', detail: contentType === 'testing-guide' || contentType === 'tool-review' ? 'fetched live from GitHub' : 'not used for this type' },
+                    ].map(({ label, ok, detail }) => (
+                      <span key={label} className={`inline-flex items-center gap-1 text-xs px-2 py-1 rounded-lg border ${ok ? 'border-emerald-200 dark:border-emerald-800 bg-emerald-50 dark:bg-emerald-950/30 text-emerald-700 dark:text-emerald-400' : 'border-amber-200 dark:border-amber-800 bg-amber-50 dark:bg-amber-950/30 text-amber-700 dark:text-amber-400'}`}>
+                        {ok ? '✓' : '⚠'} <strong>{label}:</strong> {detail}
+                      </span>
+                    ))}
                   </div>
                 </div>
-                <a
-                  href={selectedRepo.htmlUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="shrink-0 text-xs text-gray-400 dark:text-zinc-600 hover:text-emerald-500 transition-colors"
-                >
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                    <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/>
-                    <polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/>
-                  </svg>
-                </a>
               </div>
             ) : (
               <div className="rounded-2xl border border-dashed border-gray-200 dark:border-zinc-700 bg-gray-50/50 dark:bg-zinc-900/30 p-8 text-center">
@@ -265,7 +313,7 @@ export default function ContentStudio() {
               {CONTENT_TYPES.map(([type, label]) => (
                 <button
                   key={type}
-                  onClick={() => { setContentType(type); setGenerated(''); setGenError(null); }}
+                  onClick={() => { setContentType(type); setGenerated(''); setGenError(null); setVariation(0); }}
                   className={`flex flex-col items-center gap-1.5 px-3 py-3 rounded-xl border text-xs font-medium transition-all ${
                     contentType === type
                       ? 'border-emerald-400 dark:border-emerald-500 bg-emerald-50 dark:bg-emerald-950/30 text-emerald-700 dark:text-emerald-400'
@@ -280,7 +328,7 @@ export default function ContentStudio() {
 
             {/* Generate button */}
             <button
-              onClick={generate}
+              onClick={() => generate()}
               disabled={!selectedRepo || generating}
               className="flex items-center justify-center gap-2 w-full py-3 rounded-xl bg-emerald-600 hover:bg-emerald-500 disabled:bg-gray-200 dark:disabled:bg-zinc-800 text-white disabled:text-gray-400 dark:disabled:text-zinc-600 font-semibold text-sm transition-colors"
             >
@@ -289,7 +337,7 @@ export default function ContentStudio() {
                   <svg className="animate-spin" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                     <path d="M21 12a9 9 0 1 1-6.219-8.56"/>
                   </svg>
-                  Generating with Claude…
+                  Generating…
                 </>
               ) : (
                 <>
@@ -312,9 +360,27 @@ export default function ContentStudio() {
             {generated && (
               <div className="rounded-2xl border border-gray-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 overflow-hidden">
                 <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100 dark:border-zinc-800">
-                  <span className="text-sm font-semibold text-gray-700 dark:text-zinc-300">
-                    {CONTENT_TYPE_LABELS[contentType]} — {selectedRepo?.name}
-                  </span>
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm font-semibold text-gray-700 dark:text-zinc-300">
+                      {CONTENT_TYPE_LABELS[contentType]} — {selectedRepo?.name}
+                    </span>
+                    {variation > 0 && (
+                      <span className="text-xs px-1.5 py-0.5 rounded bg-gray-100 dark:bg-zinc-800 text-gray-500 dark:text-zinc-400 font-mono">
+                        v{variation + 1}
+                      </span>
+                    )}
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={tryAnotherVersion}
+                      disabled={generating}
+                      className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg border border-gray-200 dark:border-zinc-700 hover:bg-gray-50 dark:hover:bg-zinc-800 text-gray-500 dark:text-zinc-400 disabled:opacity-40 transition-all"
+                    >
+                      <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                        <polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-3.9"/>
+                      </svg>
+                      Try another version
+                    </button>
                   <button
                     onClick={copyToClipboard}
                     className={`flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg border transition-all ${
@@ -340,6 +406,7 @@ export default function ContentStudio() {
                       </>
                     )}
                   </button>
+                  </div>
                 </div>
                 <textarea
                   ref={outputRef}

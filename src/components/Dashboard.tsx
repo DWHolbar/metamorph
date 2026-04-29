@@ -1,24 +1,48 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import type { DeltaResult } from '@/lib/types';
 import Header from './Header';
 import StatsBar from './StatsBar';
-import HiddenGems from './HiddenGems';
 import RepoTable from './RepoTable';
 import BlogCoverage from './BlogCoverage';
+import SocialFeed from './SocialFeed';
 import RateLimitBanner from './RateLimitBanner';
 import LoadingSkeleton from './LoadingSkeleton';
+import SiteGuide from './SiteGuide';
+import {
+  computeNewNotifications,
+  getNotifications,
+  saveNotifications,
+  getPrevRepos,
+  savePrevRepos,
+} from '@/lib/notifications';
+import {
+  initProgress,
+  isReturningUser,
+  welcomeMessage,
+  refreshVisit,
+  getProgress,
+} from '@/lib/userProgress';
 
-const CACHE_KEY = `delta-${new Date().toISOString().slice(0, 10)}`;
+// Hourly cache key — auto-refreshes every hour without any user action
+const CACHE_KEY = `delta-${new Date().toISOString().slice(0, 13)}`;
 
 export default function Dashboard() {
   const [data, setData] = useState<DeltaResult | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isStale, setIsStale] = useState(false);
+  const [welcomeMsg, setWelcomeMsg] = useState<string | null>(null);
+  const [returning, setReturning] = useState(false);
+  const [welcomeDismissed, setWelcomeDismissed] = useState(false);
+  const [guideHighlight, setGuideHighlight] = useState<Set<string>>(new Set());
 
   useEffect(() => {
+    // Check returning user before first render
+    if (isReturningUser()) setReturning(true);
+    initProgress();
+
     // Show cached data immediately for fast perceived load
     try {
       const raw = localStorage.getItem(CACHE_KEY);
@@ -42,6 +66,22 @@ export default function Dashboard() {
         try {
           localStorage.setItem(CACHE_KEY, JSON.stringify(fresh));
         } catch {}
+        // Compute notifications by diffing against previous fetch
+        try {
+          const prev = getPrevRepos();
+          const newNotifs = computeNewNotifications(prev, fresh.repos);
+          if (newNotifs.length > 0) {
+            saveNotifications([...newNotifs, ...getNotifications()]);
+            window.dispatchEvent(new Event('metamorph-notifications-updated'));
+          }
+          savePrevRepos(fresh.repos);
+        } catch {}
+        // Update user progress and set welcome message for returning users
+        try {
+          refreshVisit(fresh.stats.totalRepos);
+          const p = getProgress();
+          if (p && returning) setWelcomeMsg(welcomeMessage(p, fresh.stats.totalRepos));
+        } catch {}
       })
       .catch((err: unknown) => {
         if (!data) {
@@ -49,6 +89,16 @@ export default function Dashboard() {
           setLoading(false);
         }
       });
+    // Listen for AI guide highlight actions
+    const guideHandler = (e: Event) => {
+      const detail = (e as CustomEvent<{ repoNames: string[]; action: string }>).detail;
+      if (detail.action === 'highlight' || detail.action === 'fly-to') {
+        setGuideHighlight(new Set(detail.repoNames));
+        setTimeout(() => setGuideHighlight(new Set()), 8000);
+      }
+    };
+    window.addEventListener('metamorph-guide-action', guideHandler);
+    return () => window.removeEventListener('metamorph-guide-action', guideHandler);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -106,15 +156,30 @@ export default function Dashboard() {
         {/* Hero */}
         <div>
           <h2 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-zinc-100 mb-2">
-            Coverage Gap Analysis
+            Repo Intelligence
           </h2>
           <p className="text-gray-500 dark:text-zinc-400 max-w-2xl">
-            Comparing GitHub activity across{' '}
+            Live view of all open-source repos across{' '}
             <span className="text-blue-600 dark:text-blue-400 font-mono">trailofbits</span>,{' '}
             <span className="text-purple-600 dark:text-purple-400 font-mono">crytic</span>, and{' '}
-            <span className="text-orange-600 dark:text-orange-400 font-mono">lifting-bits</span>{' '}
-            against blog.trailofbits.com coverage to surface un-marketed tools.
+            <span className="text-orange-600 dark:text-orange-400 font-mono">lifting-bits</span>
+            {' '}— refreshes every hour automatically.
           </p>
+          {/* Welcome-back banner for returning users */}
+          {returning && welcomeMsg && !welcomeDismissed && (
+            <div className="mt-3 flex items-center gap-3 px-4 py-2.5 rounded-xl border border-emerald-200 dark:border-emerald-800 bg-emerald-50 dark:bg-emerald-950/30 text-sm text-emerald-700 dark:text-emerald-400">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="shrink-0">
+                <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>
+              </svg>
+              <span className="flex-1">Welcome back. {welcomeMsg}</span>
+              <button onClick={() => setWelcomeDismissed(true)} className="shrink-0 text-emerald-400 dark:text-emerald-600 hover:text-emerald-600 dark:hover:text-emerald-400 transition-colors">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+                </svg>
+              </button>
+            </div>
+          )}
+
           {isStale && (
             <p className="mt-2 text-xs text-gray-400 dark:text-zinc-600 flex items-center gap-1.5">
               <span className="relative flex h-1.5 w-1.5">
@@ -139,16 +204,26 @@ export default function Dashboard() {
         {data && (
           <>
             <StatsBar stats={data.stats} />
-            <HiddenGems gems={data.hiddenGems} />
-            <RepoTable repos={data.repos} />
+            <div className="grid grid-cols-1 xl:grid-cols-[1fr_360px] gap-6 items-start">
+              <RepoTable repos={data.repos} guideHighlight={guideHighlight} />
+              <div className="rounded-xl border border-gray-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-4">
+                <SocialFeed
+                  newsArticles={data.newsArticles ?? []}
+                  hnPosts={data.hnPosts ?? []}
+                  tweets={data.tweets ?? []}
+                />
+              </div>
+            </div>
             <BlogCoverage sources={data.blogSources} repos={data.repos} />
           </>
         )}
       </main>
 
+      {data && <SiteGuide repos={data.repos} />}
+
       <footer className="border-t border-gray-200 dark:border-zinc-800 mt-16">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 flex items-center justify-between text-xs text-gray-400 dark:text-zinc-600">
-          <span>Delta Reporter — Trail of Bits coverage analysis</span>
+          <span>Metamorph — Trail of Bits repo intelligence</span>
           <a
             href="https://github.com/trailofbits"
             target="_blank"
