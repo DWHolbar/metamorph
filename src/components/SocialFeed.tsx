@@ -187,7 +187,7 @@ export default function SocialFeed({
           {tweets.length === 0 ? (
             <div className="py-8 text-center">
               <p className="text-sm text-gray-400 dark:text-zinc-600 mb-2">
-                Twitter / X posts couldn't be fetched automatically.
+                Twitter / X posts couldn&apos;t be fetched automatically.
               </p>
               <p className="text-xs text-gray-400 dark:text-zinc-600">
                 The X API requires a paid plan. Visit{' '}
