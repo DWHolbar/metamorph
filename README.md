@@ -1,8 +1,10 @@
-# Delta Reporter
+# Metamorph
 
 **Marketing-to-Engineering Coverage Gap Analysis for Trail of Bits**
 
-Delta Reporter is a web app that automatically compares GitHub repository activity across the Trail of Bits family of organizations against their blog coverage — surfacing "Hidden Gems": actively maintained tools that have never been written about.
+Here's a demo on how Metamorph [work](https://www.loom.com/share/ce697efea23448cd9e7d5a38089c6d08)
+
+Metamorph is a web app that automatically compares GitHub repository activity across the Trail of Bits family of organizations against their blog coverage — surfacing "Hidden Gems": actively maintained tools that have never been written about.
 
 ![Built with Next.js](https://img.shields.io/badge/built%20with-Next.js%2014-black?style=flat-square&logo=next.js) ![Deployed on Vercel](https://img.shields.io/badge/deployed%20on-Vercel-black?style=flat-square&logo=vercel) ![TypeScript](https://img.shields.io/badge/TypeScript-5.4-blue?style=flat-square&logo=typescript)
 
