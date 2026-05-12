@@ -2,7 +2,7 @@
 
 **Marketing-to-Engineering Coverage Gap Analysis for Trail of Bits**
 
-Here's a demo on how Metamorph [work](https://www.loom.com/share/ce697efea23448cd9e7d5a38089c6d08)
+Here's a demo on how Metamorph [works](https://www.loom.com/share/ce697efea23448cd9e7d5a38089c6d08)
 
 Metamorph is a web app that automatically compares GitHub repository activity across the Trail of Bits family of organizations against their blog coverage — surfacing "Hidden Gems": actively maintained tools that have never been written about.
 
